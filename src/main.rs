@@ -27,6 +27,12 @@ pub struct UnitHandle<'a> {
 }
 
 impl LuaUserData for UnitHandle<'_> {
+    fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method_mut("move", |_lua, mut handle, args: (f32, f32)| {
+            handle.movement.next_move = Vec2::from(args);
+            Ok(())
+        });
+    }
 }
 
 fn spawn_unit(mut commands: Commands) {
