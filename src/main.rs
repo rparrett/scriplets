@@ -37,6 +37,7 @@ impl LuaUserData for UnitHandle<'_> {
 
 fn spawn_unit(mut commands: Commands) {
     let lua = Lua::new();
+    lua.load("function on_tick(handle) handle.move(0.5, 0.5) end").exec().unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(Movement{speed:1.0, next_move: Vec2::splat(0.0)})
