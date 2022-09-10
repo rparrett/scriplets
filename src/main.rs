@@ -38,6 +38,12 @@ fn spawn_unit(mut commands: Commands) {
         .insert_bundle(TransformBundle::default());
 }
 
+fn print_unit_positions(units: Query<&Transform, With<Unit>>) {
+    for (i, unit) in units.iter().enumerate() {
+        println!("Unit #{}: {}, {}", i, unit.translation.x, unit.translation.y);
+    }
+}
+
 fn handle_movement(mut units: Query<(&mut Movement, &mut Transform), With<Unit>>) {
     for (mut movement, mut transform) in units.iter_mut() {
         transform.translation += movement.next_move.extend(0.0).clamp_length_max(1.0) * movement.speed;
@@ -69,6 +75,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system(spawn_unit)
+        .add_system(print_unit_positions)
         .add_system(handle_movement)
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
         .run();
