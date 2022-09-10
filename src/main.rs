@@ -20,6 +20,8 @@ pub struct Movement {
     next_move: Vec2
 }
 
+pub struct GameTickTimer(Timer);
+
 fn spawn_unit(mut commands: Commands) {
     let lua = Lua::new();
     commands.spawn()
@@ -39,6 +41,7 @@ fn handle_movement(mut units: Query<(&mut Movement, &mut Transform), With<Unit>>
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system(spawn_unit)
         .add_system(handle_movement)
         .run();
