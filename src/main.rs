@@ -55,7 +55,7 @@ fn handle_movement(mut units: Query<(&mut Movement, &mut Transform), With<Unit>>
     for (mut movement, mut transform) in units.iter_mut() {
         if movement.next_move != Vec2::ZERO {
             transform.translation += movement.next_move.extend(0.0).clamp_length_max(1.0) * movement.speed;
-            movement.next_move = Vec2::splat(0.0);
+            movement.next_move = Vec2::ZERO;
         }
     }
 }
