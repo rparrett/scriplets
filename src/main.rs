@@ -2,6 +2,8 @@ use std::sync::Mutex;
 use mlua::prelude::*;
 use bevy::prelude::*;
 
+const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
+
 #[derive(Component)]
 pub struct LuaState(Mutex<Lua>);
 
@@ -81,6 +83,7 @@ fn unit_tick(mut units: Query<(&LuaState, &mut Movement), With<Unit>>, mut game_
 
 fn main() {
     App::new()
+        .insert_resource(ClearColor(CLEAR_COLOR))
         .add_plugins(DefaultPlugins)
         .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system(spawn_unit)
