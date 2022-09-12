@@ -1,8 +1,9 @@
 use std::sync::Mutex;
 use mlua::prelude::*;
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PresentMode};
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
+const RESOLUTION: f32 = 16.0 / 9.0;
 
 #[derive(Component)]
 pub struct LuaState(Mutex<Lua>);
@@ -82,8 +83,17 @@ fn unit_tick(mut units: Query<(&LuaState, &mut Movement), With<Unit>>, mut game_
 }
 
 fn main() {
+    let height = 900.0;
     App::new()
         .insert_resource(ClearColor(CLEAR_COLOR))
+        .insert_resource(WindowDescriptor {
+            title: "Scriplets".to_string(),
+            present_mode: PresentMode::Fifo,
+            height,
+            width: height * RESOLUTION,
+            resizable: false,
+            ..default()
+        })
         .add_plugins(DefaultPlugins)
         .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system(spawn_unit)
