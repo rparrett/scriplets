@@ -87,8 +87,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system(spawn_unit)
+        .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
         .add_system(print_unit_positions)
         .add_system(handle_movement)
-        .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
         .run();
 }
