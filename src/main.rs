@@ -25,6 +25,8 @@ pub struct Movement {
 
 pub struct GameTickTimer(Timer);
 
+pub struct UnitSprite(Handle<Image>);
+
 pub struct UnitHandle<'a> {
     movement: &'a mut Movement
 }
@@ -51,14 +53,15 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn_bundle(camera);
 }
 
-fn spawn_unit(mut commands: Commands) {
+fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     let lua = Lua::new();
     lua.load("function on_tick(handle) handle:move(0.5, 0.5) end").exec().unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(Movement{speed:1.0, next_move: Vec2::splat(0.0)})
         .insert(LuaState::new(lua))
-        .insert_bundle(TransformBundle::default());
+        .insert_bundle(TransformBundle::default())
+        .insert_bundle(SpriteBundle{texture: unit_sprite.0.clone(), sprite: Sprite { custom_size: Some(Vec2::splat(0.1)), ..default()}, ..default()});
 }
 
 fn print_unit_positions(units: Query<&Transform, With<Unit>>) {
@@ -95,6 +98,11 @@ fn unit_tick(mut units: Query<(&LuaState, &mut Movement), With<Unit>>, mut game_
     }
 }
 
+fn load_sprites(mut commands: Commands, assets: Res<AssetServer>) {
+    let unit_sprite = assets.load("unit.png");
+    commands.insert_resource(UnitSprite(unit_sprite));
+}
+
 fn main() {
     let height = 900.0;
     App::new()
@@ -109,6 +117,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
+        .add_startup_system_to_stage(StartupStage::PreStartup, load_sprites)
         .add_startup_system(spawn_unit)
         .add_startup_system(spawn_camera)
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
