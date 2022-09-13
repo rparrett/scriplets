@@ -61,7 +61,13 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
         .insert(Movement{speed:1.0, next_move: Vec2::splat(0.0)})
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
-        .insert_bundle(SpriteBundle{texture: unit_sprite.0.clone(), sprite: Sprite { custom_size: Some(Vec2::splat(0.1)), ..default()}, ..default()});
+        .insert_bundle(SpriteBundle {
+            texture: unit_sprite.0.clone(),
+            sprite: Sprite {
+                custom_size: Some(Vec2::splat(0.1)),
+                ..default()
+            },
+            ..default()});
 }
 
 fn print_unit_positions(units: Query<&Transform, With<Unit>>) {
