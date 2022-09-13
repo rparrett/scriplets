@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use mlua::prelude::*;
-use bevy::{prelude::*, window::PresentMode};
+use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode};
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
@@ -36,6 +36,19 @@ impl LuaUserData for UnitHandle<'_> {
             Ok(())
         });
     }
+}
+
+fn spawn_camera(mut commands: Commands) {
+    let mut camera = Camera2dBundle::default();
+
+    camera.projection.top = 1.0;
+    camera.projection.bottom = -1.0;
+    camera.projection.right = 1.0 * RESOLUTION;
+    camera.projection.left = -1.0 * RESOLUTION;
+
+    camera.projection.scaling_mode = ScalingMode::None;
+
+    commands.spawn_bundle(camera);
 }
 
 fn spawn_unit(mut commands: Commands) {
@@ -97,6 +110,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system(spawn_unit)
+        .add_startup_system(spawn_camera)
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
         .add_system(print_unit_positions)
         .add_system(handle_movement)
