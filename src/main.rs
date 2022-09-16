@@ -82,12 +82,14 @@ fn move_and_zoom_camera(
 
 fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     let lua = Lua::new();
-    lua.load("function on_tick(handle) handle:move(0.5, 0.5) end").exec().unwrap();
+    lua.load("function on_tick(handle) handle:move(0.01, 0.01) end").exec().unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(Movement{speed:1.0, next_move: Vec2::splat(0.0)})
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
+        .insert(Collider::cuboid(0.5, 0.5))
+        .insert(RigidBody::KinematicPositionBased)
         .insert_bundle(SpriteBundle {
             texture: unit_sprite.0.clone(),
             sprite: Sprite {
@@ -109,6 +111,8 @@ fn spawn_walls(mut commands: Commands, wall_sprite: Res<WallSprite>) {
 fn spawn_wall(commands: &mut Commands, x: f32, y: f32, sprite: &Handle<Image>) {
     let transform = TransformBundle::from(Transform::from_xyz(x, y, 0.0));
     commands.spawn()
+        .insert(Collider::cuboid(0.5, 0.5))
+        .insert(RigidBody::Fixed)
         .insert_bundle(SpriteBundle {
             texture: sprite.clone(),
             transform: transform.local,
