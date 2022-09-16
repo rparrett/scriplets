@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use mlua::prelude::*;
-use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode};
+use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}};
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
@@ -53,6 +53,31 @@ fn spawn_camera(mut commands: Commands) {
     camera.transform.scale *= 2.0;
 
     commands.spawn_bundle(camera);
+}
+
+fn move_and_zoom_camera(
+    mut camera: Query<&mut Transform, With<Camera2d>>,
+    input: Res<Input<MouseButton>>,
+    mut mouse_scroll_evr: EventReader<MouseWheel>,
+    mut mouse_move_evr: EventReader<MouseMotion>)
+{
+    let mut camera = camera.single_mut();
+    for scroll_event in mouse_scroll_evr.iter() {
+        match scroll_event.unit {
+            MouseScrollUnit::Line => camera.scale = (camera.scale - 0.5 * scroll_event.y).clamp_length(1.0, 20.0),
+            MouseScrollUnit::Pixel => camera.scale = (camera.scale - 0.1 * scroll_event.y).clamp_length(1.0, 20.0)
+        }
+    }
+    for move_event in mouse_move_evr.iter() {
+        if input.pressed(MouseButton::Middle) {
+            let delta = {
+                let mut delta = move_event.delta * 0.0015 * camera.scale.length();
+                delta.x = -delta.x;
+                delta.extend(0.0)
+            };
+            camera.translation += delta;
+        }
+    }
 }
 
 fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
@@ -131,5 +156,6 @@ fn main() {
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
         .add_system(print_unit_positions)
         .add_system(handle_movement)
+        .add_system(move_and_zoom_camera)
         .run();
 }
