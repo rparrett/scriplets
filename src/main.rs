@@ -50,6 +50,8 @@ fn spawn_camera(mut commands: Commands) {
 
     camera.projection.scaling_mode = ScalingMode::None;
 
+    camera.transform.scale *= 2.0;
+
     commands.spawn_bundle(camera);
 }
 
@@ -64,7 +66,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
         .insert_bundle(SpriteBundle {
             texture: unit_sprite.0.clone(),
             sprite: Sprite {
-                custom_size: Some(Vec2::splat(0.1)),
+                custom_size: Some(Vec2::splat(1.0)),
                 ..default()
             },
             ..default()});
