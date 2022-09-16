@@ -50,8 +50,6 @@ fn spawn_camera(mut commands: Commands) {
 
     camera.projection.scaling_mode = ScalingMode::None;
 
-    camera.transform.scale *= 2.0;
-
     commands.spawn_bundle(camera);
 }
 
