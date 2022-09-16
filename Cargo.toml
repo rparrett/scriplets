@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 mlua = {version = "0.8", features = ["lua54", "vendored", "send"]}
-bevy = {version = "0.8"}
+bevy = {version = "0.8", features = ["dynamic"]}
