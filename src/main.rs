@@ -129,7 +129,9 @@ fn handle_movement(mut units: Query<(Entity, &mut Movement, &mut Transform, &Col
             let shape_pos = transform.translation.truncate();
             let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
             let max_toi = 1.0;
-            let filter = QueryFilter::default().exclude_collider(entity);
+            let filter = QueryFilter::default()
+                .exclude_collider(entity)
+                .exclude_sensors();
             if rapier_context.cast_shape(shape_pos, shape_rot, delta.truncate(), collider, max_toi, filter).is_none() {
                 transform.translation += delta;
             }
