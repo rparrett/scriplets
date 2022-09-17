@@ -70,12 +70,9 @@ fn move_and_zoom_camera(
     }
     for move_event in mouse_move_evr.iter() {
         if input.pressed(MouseButton::Middle) {
-            let delta = {
-                let mut delta = move_event.delta * 0.0015 * camera.scale.length();
-                delta.x = -delta.x;
-                delta.extend(0.0)
-            };
-            camera.translation += delta;
+            let mut delta = move_event.delta * 0.0015 * camera.scale.length();
+            delta.x = -delta.x;
+            camera.translation += delta.extend(0.0);
         }
     }
 }
