@@ -125,10 +125,17 @@ fn spawn_wall(commands: &mut Commands, x: f32, y: f32, sprite: &Handle<Image>) {
         });
 }
 
-fn handle_movement(mut units: Query<(&mut Movement, &mut Transform), With<Unit>>) {
-    for (mut movement, mut transform) in units.iter_mut() {
+fn handle_movement(mut units: Query<(Entity, &mut Movement, &mut Transform, &Collider), With<Unit>>, rapier_context: Res<RapierContext>) {
+    for (entity, mut movement, mut transform, collider) in units.iter_mut() {
         if movement.next_move != Vec2::ZERO {
-            transform.translation += movement.next_move.extend(0.0).clamp_length_max(1.0) * movement.speed;
+            let delta = movement.next_move.extend(0.0).clamp_length_max(1.0) * movement.speed;
+            let shape_pos = transform.translation.truncate();
+            let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
+            let max_toi = 1.0;
+            let filter = QueryFilter::default().exclude_collider(entity);
+            if rapier_context.cast_shape(shape_pos, shape_rot, delta.truncate(), collider, max_toi, filter).is_none() {
+                transform.translation += delta;
+            }
             movement.next_move = Vec2::ZERO;
         }
     }
