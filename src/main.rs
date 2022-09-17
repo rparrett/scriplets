@@ -125,12 +125,6 @@ fn spawn_wall(commands: &mut Commands, x: f32, y: f32, sprite: &Handle<Image>) {
         });
 }
 
-fn print_unit_positions(units: Query<&Transform, With<Unit>>) {
-    for (i, unit) in units.iter().enumerate() {
-        println!("Unit #{}: {}, {}", i, unit.translation.x, unit.translation.y);
-    }
-}
-
 fn handle_movement(mut units: Query<(&mut Movement, &mut Transform), With<Unit>>) {
     for (mut movement, mut transform) in units.iter_mut() {
         if movement.next_move != Vec2::ZERO {
@@ -187,7 +181,6 @@ fn main() {
         .add_startup_system(spawn_unit)
         .add_startup_system(spawn_camera)
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
-        .add_system(print_unit_positions)
         .add_system(handle_movement)
         .add_system(move_and_zoom_camera)
         .run();
