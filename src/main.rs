@@ -122,7 +122,10 @@ fn spawn_wall(commands: &mut Commands, x: f32, y: f32, sprite: &Handle<Image>) {
         });
 }
 
-fn handle_movement(mut units: Query<(Entity, &mut Movement, &mut Transform, &Collider), With<Unit>>, rapier_context: Res<RapierContext>) {
+fn handle_movement(
+    mut units: Query<(Entity, &mut Movement, &mut Transform, &Collider), With<Unit>>,
+    rapier_context: Res<RapierContext>)
+{
     for (entity, mut movement, mut transform, collider) in units.iter_mut() {
         if movement.next_move != Vec2::ZERO {
             let delta = movement.next_move.extend(0.0).clamp_length_max(1.0) * (movement.speed / 60.0);
@@ -140,7 +143,11 @@ fn handle_movement(mut units: Query<(Entity, &mut Movement, &mut Transform, &Col
     }
 }
 
-fn unit_tick(mut units: Query<(&LuaState, &mut Movement), With<Unit>>, mut game_tick_timer: ResMut<GameTickTimer>, time: Res<Time>) {
+fn unit_tick(
+    mut units: Query<(&LuaState, &mut Movement), With<Unit>>,
+    mut game_tick_timer: ResMut<GameTickTimer>,
+    time: Res<Time>) 
+{
     if game_tick_timer.0.tick(time.delta()).just_finished() {
         for (lua, mut movement) in units.iter_mut() {
             let lua_lock = lua.0.lock().unwrap();
