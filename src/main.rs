@@ -61,7 +61,7 @@ fn move_and_zoom_camera(
     mut mouse_scroll_evr: EventReader<MouseWheel>,
     mut mouse_move_evr: EventReader<MouseMotion>)
 {
-    let (mut camera, mut transform) = camera.single_mut();
+    let (mut camera, mut camera_transform) = camera.single_mut();
     for scroll_event in mouse_scroll_evr.iter() {
         match scroll_event.unit {
             MouseScrollUnit::Line => camera.scale = (camera.scale - 0.5 * scroll_event.y).clamp(1.0, 20.0),
@@ -72,7 +72,7 @@ fn move_and_zoom_camera(
         if input.pressed(MouseButton::Middle) {
             let mut delta = move_event.delta * 0.0025 * camera.scale;
             delta.x = -delta.x;
-            transform.translation += delta.extend(0.0);
+            camera_transform.translation += delta.extend(0.0);
         }
     }
 }
