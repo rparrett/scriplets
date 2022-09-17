@@ -56,23 +56,23 @@ fn spawn_camera(mut commands: Commands) {
 }
 
 fn move_and_zoom_camera(
-    mut camera: Query<&mut Transform, With<Camera2d>>,
+    mut camera: Query<(&mut OrthographicProjection, &mut Transform), With<Camera2d>>,
     input: Res<Input<MouseButton>>,
     mut mouse_scroll_evr: EventReader<MouseWheel>,
     mut mouse_move_evr: EventReader<MouseMotion>)
 {
-    let mut camera = camera.single_mut();
+    let (mut camera, mut transform) = camera.single_mut();
     for scroll_event in mouse_scroll_evr.iter() {
         match scroll_event.unit {
-            MouseScrollUnit::Line => camera.scale = (camera.scale - 0.5 * scroll_event.y).clamp_length(1.0, 20.0),
-            MouseScrollUnit::Pixel => camera.scale = (camera.scale - 0.1 * scroll_event.y).clamp_length(1.0, 20.0)
+            MouseScrollUnit::Line => camera.scale = (camera.scale - 0.5 * scroll_event.y).clamp(1.0, 20.0),
+            MouseScrollUnit::Pixel => camera.scale = (camera.scale - 0.1 * scroll_event.y).clamp(1.0, 20.0)
         }
     }
     for move_event in mouse_move_evr.iter() {
         if input.pressed(MouseButton::Middle) {
-            let mut delta = move_event.delta * 0.0015 * camera.scale.length();
+            let mut delta = move_event.delta * 0.0025 * camera.scale;
             delta.x = -delta.x;
-            camera.translation += delta.extend(0.0);
+            transform.translation += delta.extend(0.0);
         }
     }
 }
