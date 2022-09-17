@@ -82,7 +82,7 @@ fn move_and_zoom_camera(
 
 fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     let lua = Lua::new();
-    lua.load("function on_tick(handle) handle:move(0.01, 0.01) end").exec().unwrap();
+    lua.load("function on_tick(handle) handle:move(1, 1) end").exec().unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(Movement{speed:1.0, next_move: Vec2::splat(0.0)})
@@ -128,7 +128,7 @@ fn spawn_wall(commands: &mut Commands, x: f32, y: f32, sprite: &Handle<Image>) {
 fn handle_movement(mut units: Query<(Entity, &mut Movement, &mut Transform, &Collider), With<Unit>>, rapier_context: Res<RapierContext>) {
     for (entity, mut movement, mut transform, collider) in units.iter_mut() {
         if movement.next_move != Vec2::ZERO {
-            let delta = movement.next_move.extend(0.0).clamp_length_max(1.0) * movement.speed;
+            let delta = movement.next_move.extend(0.0).clamp_length_max(1.0) * (movement.speed / 60.0);
             let shape_pos = transform.translation.truncate();
             let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
             let max_toi = 1.0;
