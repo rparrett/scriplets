@@ -1,0 +1,15 @@
+{
+    "movement": [
+        {
+            "name": "default",
+            "movement_type": "omnidirectional",
+            "speed": 1.0,
+            "max_speed": 1.0,
+            "max_speed_backwards": 1.0,
+            "acceleration": 1.0,
+            "braking_acceleration": 1.0,
+            "passive_deceleration": 0.0,
+            "rotation_speed": 90.0
+        }
+    ]
+}
