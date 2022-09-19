@@ -215,7 +215,7 @@ fn handle_movement(
                      let rotation = Quat::from_rotation_z(-(movement.rotation_speed * move_vec.y * std::f32::consts::PI) / (180.0 * 60.0));
                      transform.rotation *= rotation;
                 }
-                if movement.input_move != Vec2::ZERO {
+                if movement.input_move.x != 0.0 {
                     let max_speed = movement.max_speed;
                     let max_speed_backwards = -movement.max_speed_backwards.unwrap_or(max_speed);
                     let acceleration = movement.acceleration;
