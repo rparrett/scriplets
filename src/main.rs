@@ -28,7 +28,6 @@ pub struct Movement {
 #[derive(Component)]
 pub struct UnitClock(Stopwatch);
 
-pub struct GameTickTimer(Timer);
 pub struct GameClock(Stopwatch);
 
 pub struct UnitSprite(Handle<Image>);
@@ -162,30 +161,27 @@ fn handle_movement(
 
 fn unit_tick(
     mut units: Query<(&LuaState, &mut Movement, &mut UnitClock), With<Unit>>,
-    mut game_tick_timer: ResMut<GameTickTimer>,
     game_clock: Res<GameClock>,
     time: Res<Time>) 
 {
     units.iter_mut().for_each(|(_, _, mut unit_clock)| {unit_clock.0.tick(time.delta());});
-    if game_tick_timer.0.tick(time.delta()).just_finished() {
-        for (lua, mut movement, clock) in units.iter_mut() {
-            let lua_lock = lua.0.lock().unwrap();
-            {
-                let globals = lua_lock.globals();
-                if let Some(on_tick) = globals.get::<_, Option<LuaFunction>>("on_tick").unwrap() {
-                    lua_lock.scope(|s| {
-                        let handle = UnitHandle {
-                            movement: &mut movement,
-                            clock: &clock,
-                            game_clock: &game_clock
-                        };
-                        let lua_handle = s.create_nonstatic_userdata(handle)?;
-                        on_tick.call(lua_handle)?;
-                        Ok(())
-                    }).unwrap();
-                };
+    for (lua, mut movement, clock) in units.iter_mut() {
+        let lua_lock = lua.0.lock().unwrap();
+        {
+            let globals = lua_lock.globals();
+            if let Some(on_tick) = globals.get::<_, Option<LuaFunction>>("on_tick").unwrap() {
+                lua_lock.scope(|s| {
+                    let handle = UnitHandle {
+                        movement: &mut movement,
+                        clock: &clock,
+                        game_clock: &game_clock
+                    };
+                    let lua_handle = s.create_nonstatic_userdata(handle)?;
+                    on_tick.call(lua_handle)?;
+                    Ok(())
+                }).unwrap();
             };
-        }
+        };
     }
 }
 
@@ -216,7 +212,6 @@ fn main() {
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(32.0))
         .add_plugin(RapierDebugRenderPlugin::default())
         .insert_resource(GameClock(Stopwatch::default()))
-        .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system_to_stage(StartupStage::PreStartup, load_sprites)
         .add_startup_system(spawn_walls)
         .add_startup_system(spawn_unit)
