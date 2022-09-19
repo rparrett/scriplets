@@ -2,6 +2,7 @@ use std::sync::Mutex;
 use mlua::prelude::*;
 use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch};
 use bevy_rapier2d::prelude::*;
+use serde::Deserialize
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
@@ -22,21 +23,32 @@ impl LuaState {
 #[derive(Component)]
 pub struct Unit;
 
-#[derive(Component)]
+#[derive(Component, Deserialize)]
 pub struct Movement {
     name: String,
     movement_type: MovementType,
+    #[serde(default)]
     speed: f32, // tiles / second
+    #[serde(default)]
     max_speed: f32,
+    #[serde(default)]
     max_speed_backwards: Option<f32>,
+    #[serde(default)]
     acceleration: f32, // tiles / second^2
+    #[serde(default)]
     braking_acceleration: Option<f32>,
+    #[serde(default)]
     passive_deceleration: f32,
+    #[serde(default)]
     rotation_speed: f32, // degrees / second
+    #[serde(skip)]
     input_move: Vec2,
+    #[serde(skip)]
     input_rotation: f32
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum MovementType {
     Omnidirectional,
     Accelerated,

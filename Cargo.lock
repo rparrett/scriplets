@@ -2841,6 +2841,8 @@ dependencies = [
  "bevy",
  "bevy_rapier2d",
  "mlua",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
