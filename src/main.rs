@@ -23,6 +23,11 @@ pub struct Movement {
     name: String,
     movement_type: MovementType,
     speed: f32, // tiles / second
+    max_speed: f32,
+    max_speed_backwards: Option<f32>,
+    acceleration: f32, // tiles / second^2
+    braking_acceleration: Option<f32>,
+    passive_deceleration: f32,
     rotation_speed: f32, // degrees / second
     input_move: Vec2,
     input_rotation: f32
@@ -30,7 +35,7 @@ pub struct Movement {
 
 pub enum MovementType {
     Omnidirectional,
-    ForwardBackwardTurning,
+    Accelerated,
     Train
 }
 
@@ -119,7 +124,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     let lua = Lua::new();
     lua.load(r#"
         function on_tick(handle)
-            handle:move(1, 1)
+           handle:move(1, 1)
         end
         "#).exec().unwrap();
     commands.spawn()
@@ -127,8 +132,13 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
         .insert(UnitClock(Stopwatch::default()))
         .insert(Movement {
                 name: "".into(),
-                movement_type: MovementType::Omnidirectional,
+                movement_type: MovementType::Accelerated,
                 speed: 1.0,
+                max_speed: 1.0,
+                max_speed_backwards: None,
+                acceleration: 1.0,
+                braking_acceleration: None,
+                passive_deceleration: 0.0,
                 rotation_speed: 90.0,
                 input_move: Vec2::ZERO,
                 input_rotation: 0.0
@@ -199,6 +209,49 @@ fn handle_movement(
                     movement.input_move = Vec2::ZERO;
                 }
             },
+            MovementType::Accelerated => {
+                let move_vec = movement.input_move.clamp(Vec2::NEG_X + Vec2::NEG_Y, Vec2::X + Vec2::Y);
+                if movement.input_move.y != 0.0 {
+                     let rotation = Quat::from_rotation_z(-(movement.rotation_speed * move_vec.y * std::f32::consts::PI) / (180.0 * 60.0));
+                     transform.rotation *= rotation;
+                }
+                if movement.input_move != Vec2::ZERO {
+                    let max_speed = movement.max_speed;
+                    let max_speed_backwards = -movement.max_speed_backwards.unwrap_or(max_speed);
+                    let acceleration = movement.acceleration;
+                    let braking_acceleration = -movement.braking_acceleration.unwrap_or(acceleration);
+                    let passive_deceleration = movement.passive_deceleration;
+                    let new_speed = {
+                        let acceleration = {
+                            if (movement.speed > 0.0 && move_vec.x > 0.0) || (movement.speed < 0.0 && move_vec.x < 0.0) {
+                                acceleration
+                            } else if (movement.speed > 0.0 && move_vec.x < 0.0) || (movement.speed < 0.0 && move_vec.x > 0.0) {
+                                braking_acceleration
+                            } else if movement.speed != 0.0 {
+                                -passive_deceleration
+                            } else {
+                                acceleration
+                            }
+                        };
+                        (movement.speed + acceleration * move_vec.x).clamp(max_speed_backwards, max_speed)
+                    };
+                    movement.speed = new_speed
+                }
+                if movement.speed != 0.0 {
+                    let unrotated_move = transform.up().truncate() * (movement.speed / 60.0);
+                    let delta = Mat2::from_cols(transform.right().truncate(), transform.up().truncate()) * unrotated_move;
+                    let shape_pos = transform.translation.truncate();
+                    let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
+                    let max_toi = 1.0;
+                    let filter = QueryFilter::default()
+                        .exclude_collider(entity)
+                        .exclude_sensors();
+                    if rapier_context.cast_shape(shape_pos, shape_rot, delta, collider, max_toi, filter).is_none() {
+                        transform.translation += delta.extend(0.0);
+                    }
+                    movement.input_move = Vec2::ZERO
+                }
+            }
             _ => {}
         }
     }
