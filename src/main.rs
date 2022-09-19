@@ -38,7 +38,7 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, T: ComponentPrototype<'d
     Ok(Vec::<T>::deserialize(deserializer)?.into_iter().map(|p| (p.name().clone(), p)).collect())
 }
 
-#[derive(Component, Deserialize)]
+#[derive(Component, Deserialize, Clone)]
 pub struct Movement {
     name: String,
     movement_type: MovementType,
@@ -68,7 +68,7 @@ impl ComponentPrototype<'_> for Movement {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub enum MovementType {
     Omnidirectional,
@@ -158,7 +158,11 @@ fn move_and_zoom_camera(
     }
 }
 
-fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
+fn spawn_unit(
+    mut commands: Commands,
+    unit_sprite: Res<UnitSprite>,
+    component_prototypes: Res<ComponentPrototypes>)
+{
     let lua = Lua::new();
     lua.load(r#"
         function on_tick(handle)
@@ -168,19 +172,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
-        .insert(Movement {
-                name: "".into(),
-                movement_type: MovementType::Omnidirectional,
-                speed: 1.0,
-                max_speed: 1.0,
-                max_speed_backwards: None,
-                acceleration: 1.0,
-                braking_acceleration: None,
-                passive_deceleration: 0.0,
-                rotation_speed: 90.0,
-                input_move: Vec2::ZERO,
-                input_rotation: 0.0
-        })
+        .insert(component_prototypes.movement.get("default").unwrap().clone())
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
         .insert(Collider::cuboid(0.499, 0.499))
