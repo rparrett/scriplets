@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use mlua::prelude::*;
-use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}};
+use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch};
 use bevy_rapier2d::prelude::*;
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
@@ -25,13 +25,17 @@ pub struct Movement {
     input_move: Vec2
 }
 
+#[derive(Component)]
+pub struct UnitClock(Stopwatch);
+
 pub struct GameTickTimer(Timer);
 
 pub struct UnitSprite(Handle<Image>);
 pub struct WallSprite(Handle<Image>);
 
 pub struct UnitHandle<'a> {
-    movement: &'a mut Movement
+    movement: &'a mut Movement,
+    clock: &'a UnitClock
 }
 
 impl LuaUserData for UnitHandle<'_> {
@@ -83,6 +87,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     lua.load("function on_tick(handle) handle:move(1, 1) end").exec().unwrap();
     commands.spawn()
         .insert(Unit)
+        .insert(UnitClock(Stopwatch::default()))
         .insert(Movement{name: "".into(), speed:1.0, input_move: Vec2::splat(0.0)})
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
@@ -145,18 +150,22 @@ fn handle_movement(
 }
 
 fn unit_tick(
-    mut units: Query<(&LuaState, &mut Movement), With<Unit>>,
+    mut units: Query<(&LuaState, &mut Movement, &mut UnitClock), With<Unit>>,
     mut game_tick_timer: ResMut<GameTickTimer>,
     time: Res<Time>) 
 {
+    units.iter_mut().for_each(|(_, _, mut unit_clock)| {unit_clock.0.tick(time.delta());});
     if game_tick_timer.0.tick(time.delta()).just_finished() {
-        for (lua, mut movement) in units.iter_mut() {
+        for (lua, mut movement, clock) in units.iter_mut() {
             let lua_lock = lua.0.lock().unwrap();
             {
                 let globals = lua_lock.globals();
                 if let Some(on_tick) = globals.get::<_, Option<LuaFunction>>("on_tick").unwrap() {
                     lua_lock.scope(|s| {
-                        let handle = UnitHandle{movement: &mut movement};
+                        let handle = UnitHandle {
+                            movement: &mut movement,
+                            clock: &clock
+                        };
                         let lua_handle = s.create_nonstatic_userdata(handle)?;
                         on_tick.call(lua_handle)?;
                         Ok(())
