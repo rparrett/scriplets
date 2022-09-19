@@ -159,7 +159,8 @@ fn handle_movement(
         match movement.movement_type {
              MovementType::Omnidirectional => {
                  if movement.input_move != Vec2::ZERO {
-                    let delta = movement.input_move.clamp_length_max(1.0) * (movement.speed / 60.0);
+                    let unrotated_move = movement.input_move.clamp_length_max(1.0) * (movement.speed / 60.0);
+                    let delta = Mat2::from_cols(transform.right().truncate(), transform.up().truncate()) * unrotated_move;
                     let shape_pos = transform.translation.truncate();
                     let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
                     let max_toi = 1.0;
