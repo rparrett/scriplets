@@ -172,7 +172,7 @@ fn handle_movement(
         match movement.movement_type {
              MovementType::Omnidirectional => {
                  if movement.input_rotation != 0.0 {
-                     let rotation = Quat::from_rotation_z((movement.rotation_speed * movement.input_rotation * std::f32::consts::PI) / (180.0 * 60.0));
+                     let rotation = Quat::from_rotation_z(-(movement.rotation_speed * movement.input_rotation.clamp(-1.0, 1.0) * std::f32::consts::PI) / (180.0 * 60.0));
                      transform.rotation *= rotation;
                  }
                  if movement.input_move != Vec2::ZERO {
