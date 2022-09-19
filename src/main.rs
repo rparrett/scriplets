@@ -83,7 +83,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     lua.load("function on_tick(handle) handle:move(1, 1) end").exec().unwrap();
     commands.spawn()
         .insert(Unit)
-        .insert(Movement{speed:1.0, input_move: Vec2::splat(0.0)})
+        .insert(Movement{name: "".into(), speed:1.0, input_move: Vec2::splat(0.0)})
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
         .insert(Collider::cuboid(0.5, 0.5))
