@@ -128,15 +128,15 @@ fn handle_movement(
 {
     for (entity, mut movement, mut transform, collider) in units.iter_mut() {
         if movement.next_move != Vec2::ZERO {
-            let delta = movement.next_move.extend(0.0).clamp_length_max(1.0) * (movement.speed / 60.0);
+            let delta = movement.next_move.clamp_length_max(1.0) * (movement.speed / 60.0);
             let shape_pos = transform.translation.truncate();
             let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
             let max_toi = 1.0;
             let filter = QueryFilter::default()
                 .exclude_collider(entity)
                 .exclude_sensors();
-            if rapier_context.cast_shape(shape_pos, shape_rot, delta.truncate(), collider, max_toi, filter).is_none() {
-                transform.translation += delta;
+            if rapier_context.cast_shape(shape_pos, shape_rot, delta, collider, max_toi, filter).is_none() {
+                transform.translation += delta.extend(0.0);
             }
             movement.next_move = Vec2::ZERO;
         }
