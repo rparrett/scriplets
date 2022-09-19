@@ -1,8 +1,8 @@
-use std::sync::Mutex;
+use std::{sync::Mutex, collections::HashMap};
 use mlua::prelude::*;
-use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch};
+use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, reflect::TypeUuid};
 use bevy_rapier2d::prelude::*;
-use serde::Deserialize
+use serde::{Deserialize, Deserializer};
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
@@ -22,6 +22,21 @@ impl LuaState {
 
 #[derive(Component)]
 pub struct Unit;
+
+pub trait ComponentPrototype<'de>: Deserialize<'de> {
+    fn name(&self) -> &String;
+}
+
+#[derive(Deserialize, TypeUuid)]
+#[uuid = "ac617695-6724-476e-8d32-ae40472a19a1"]
+pub struct ComponentPrototypes {
+    #[serde(deserialize_with = "hashmap_from_sequence")]
+    movement: HashMap<String, Movement>
+}
+
+pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, T: ComponentPrototype<'de>>(deserializer: D) -> Result<HashMap<String, T>, D::Error> {
+    Ok(Vec::<T>::deserialize(deserializer)?.into_iter().map(|p| (p.name().clone(), p)).collect())
+}
 
 #[derive(Component, Deserialize)]
 pub struct Movement {
@@ -47,6 +62,12 @@ pub struct Movement {
     input_rotation: f32
 }
 
+impl ComponentPrototype<'_> for Movement {
+    fn name(&self) -> &String {
+        &self.name
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum MovementType {
@@ -62,6 +83,7 @@ pub struct GameClock(Stopwatch);
 
 pub struct UnitSprite(Handle<Image>);
 pub struct WallSprite(Handle<Image>);
+pub struct ComponentPrototypesAsset(Handle<ComponentPrototypes>);
 
 pub struct UnitHandle<'a> {
     movement: &'a mut Movement,
@@ -305,11 +327,13 @@ fn game_clock_tick(mut clock: ResMut<GameClock>, time: Res<Time>) {
     clock.0.tick(time.delta());
 }
 
-fn load_sprites(mut commands: Commands, assets: Res<AssetServer>) {
+fn load_assets(mut commands: Commands, assets: Res<AssetServer>) {
     let unit_sprite = assets.load("unit.png");
     commands.insert_resource(UnitSprite(unit_sprite));
     let wall_sprite = assets.load("wall.png");
     commands.insert_resource(WallSprite(wall_sprite));
+    let component_prototypes = assets.load("prototypes.json");
+    commands.insert_resource(ComponentPrototypesAsset(component_prototypes));
 }
 
 fn main() {
@@ -328,7 +352,7 @@ fn main() {
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(32.0))
         .add_plugin(RapierDebugRenderPlugin::default())
         .insert_resource(GameClock(Stopwatch::default()))
-        .add_startup_system_to_stage(StartupStage::PreStartup, load_sprites)
+        .add_startup_system_to_stage(StartupStage::PreStartup, load_assets)
         .add_startup_system(spawn_walls)
         .add_startup_system(spawn_unit)
         .add_startup_system(spawn_camera)
