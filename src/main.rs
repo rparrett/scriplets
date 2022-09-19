@@ -45,6 +45,12 @@ impl LuaUserData for UnitHandle<'_> {
             Ok(())
         });
     }
+
+    fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("time_since_start", |_lua, handle| {
+            Ok(handle.clock.0.elapsed_secs())
+        })
+    }
 }
 
 fn spawn_camera(mut commands: Commands) {
