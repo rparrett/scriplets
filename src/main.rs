@@ -44,6 +44,7 @@ pub struct WallSprite(Handle<Image>);
 
 pub struct UnitHandle<'a> {
     movement: &'a mut Movement,
+    transform: &'a Transform,
     clock: &'a UnitClock,
     game_clock: &'a GameClock
 }
@@ -66,6 +67,15 @@ impl LuaUserData for UnitHandle<'_> {
         });
         fields.add_field_method_get("global_time", |_lua, handle| {
             Ok(handle.game_clock.0.elapsed_secs())
+        });
+        fields.add_field_method_get("gps", |lua, handle| {
+            let position: [f32; 2] = handle.transform.translation.truncate().into();
+            let rotation_radians = handle.transform.rotation.to_euler(EulerRot::XYZ).2;
+            let rotation_degrees = -(rotation_radians * 180.0) / std::f32::consts::PI;
+            let table = lua.create_table()?;
+            table.set("position", position)?;
+            table.set("rotation", rotation_degrees)?;
+            Ok(table)
         });
     }
 }
@@ -109,8 +119,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     let lua = Lua::new();
     lua.load(r#"
         function on_tick(handle)
-            handle:move(1, 0)
-            handle:rotate(1.0)
+            handle:move(1, 1)
         end
         "#).exec().unwrap();
     commands.spawn()
@@ -196,10 +205,10 @@ fn handle_movement(
 }
 
 fn unit_tick(
-    mut units: Query<(&LuaState, &mut Movement, &mut UnitClock), With<Unit>>,
+    mut units: Query<(&LuaState, &mut Movement, &mut UnitClock, &Transform), With<Unit>>,
     game_clock: Res<GameClock>) 
 {
-    for (lua, mut movement, clock) in units.iter_mut() {
+    for (lua, mut movement, clock, transform) in units.iter_mut() {
         let lua_lock = lua.0.lock().unwrap();
         {
             let globals = lua_lock.globals();
@@ -207,6 +216,7 @@ fn unit_tick(
                 lua_lock.scope(|s| {
                     let handle = UnitHandle {
                         movement: &mut movement,
+                        transform,
                         clock: &clock,
                         game_clock: &game_clock
                     };
