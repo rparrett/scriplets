@@ -242,8 +242,7 @@ fn handle_movement(
                     movement.speed = new_speed
                 }
                 if movement.speed != 0.0 {
-                    let unrotated_move = transform.up().truncate() * (movement.speed / 60.0);
-                    let delta = Mat2::from_cols(transform.right().truncate(), transform.up().truncate()) * unrotated_move;
+                    let delta = transform.up().truncate() * (movement.speed / 60.0);
                     let shape_pos = transform.translation.truncate();
                     let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
                     let max_toi = 1.0;
