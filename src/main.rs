@@ -7,11 +7,15 @@ const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
 
 #[derive(Component)]
-pub struct LuaState(Mutex<Lua>);
+pub struct LuaState {
+    lua: Mutex<Lua>
+}
 
 impl LuaState {
     fn new(lua: Lua) -> Self {
-        Self(Mutex::new(lua))
+        Self{
+            lua: Mutex::new(lua)
+        }
     }
 }
 
@@ -262,7 +266,7 @@ fn unit_tick(
     game_clock: Res<GameClock>) 
 {
     for (lua, mut movement, clock, transform) in units.iter_mut() {
-        let lua_lock = lua.0.lock().unwrap();
+        let lua_lock = lua.lua.lock().unwrap();
         {
             let globals = lua_lock.globals();
             if let Some(on_tick) = globals.get::<_, Option<LuaFunction>>("on_tick").unwrap() {
