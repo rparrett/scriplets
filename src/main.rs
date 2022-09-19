@@ -101,7 +101,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
         .insert(Movement{name: "".into(), speed:1.0, input_move: Vec2::splat(0.0)})
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
-        .insert(Collider::cuboid(0.5, 0.5))
+        .insert(Collider::cuboid(0.499, 0.499))
         .insert(RigidBody::KinematicPositionBased)
         .insert_bundle(SpriteBundle {
             texture: unit_sprite.0.clone(),
@@ -113,12 +113,13 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
 }
 
 fn spawn_walls(mut commands: Commands, wall_sprite: Res<WallSprite>) {
-    for i in 0..=5 {
+    for i in 1..=5 {
         spawn_wall(&mut commands, i as f32, 5.0, &wall_sprite.0)
     }
     for j in 0..=4 {
         spawn_wall(&mut commands, 5.0, j as f32, &wall_sprite.0)
     }
+    spawn_wall(&mut commands, -1.0, 5.0, &wall_sprite.0)
 }
 
 fn spawn_wall(commands: &mut Commands, x: f32, y: f32, sprite: &Handle<Image>) {
