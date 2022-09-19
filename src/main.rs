@@ -21,8 +21,15 @@ pub struct Unit;
 #[derive(Component)]
 pub struct Movement {
     name: String,
+    movement_type: MovementType,
     speed: f32,
     input_move: Vec2
+}
+
+pub enum MovementType {
+    Omnidirectional,
+    ForwardBackwardTurning,
+    Train
 }
 
 #[derive(Component)]
@@ -98,7 +105,12 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
-        .insert(Movement{name: "".into(), speed:1.0, input_move: Vec2::splat(0.0)})
+        .insert(Movement {
+                name: "".into(),
+                movement_type: MovementType::Omnidirectional,
+                speed: 1.0,
+                input_move: Vec2::splat(0.0)
+        })
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
         .insert(Collider::cuboid(0.499, 0.499))
