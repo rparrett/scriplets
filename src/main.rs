@@ -29,13 +29,15 @@ pub struct Movement {
 pub struct UnitClock(Stopwatch);
 
 pub struct GameTickTimer(Timer);
+pub struct GameClock(Stopwatch);
 
 pub struct UnitSprite(Handle<Image>);
 pub struct WallSprite(Handle<Image>);
 
 pub struct UnitHandle<'a> {
     movement: &'a mut Movement,
-    clock: &'a UnitClock
+    clock: &'a UnitClock,
+    game_clock: &'a GameClock
 }
 
 impl LuaUserData for UnitHandle<'_> {
@@ -49,7 +51,10 @@ impl LuaUserData for UnitHandle<'_> {
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
         fields.add_field_method_get("time_since_start", |_lua, handle| {
             Ok(handle.clock.0.elapsed_secs())
-        })
+        });
+        fields.add_field_method_get("global_time", |_lua, handle| {
+            Ok(handle.game_clock.0.elapsed_secs())
+        });
     }
 }
 
@@ -158,6 +163,7 @@ fn handle_movement(
 fn unit_tick(
     mut units: Query<(&LuaState, &mut Movement, &mut UnitClock), With<Unit>>,
     mut game_tick_timer: ResMut<GameTickTimer>,
+    game_clock: Res<GameClock>,
     time: Res<Time>) 
 {
     units.iter_mut().for_each(|(_, _, mut unit_clock)| {unit_clock.0.tick(time.delta());});
@@ -170,7 +176,8 @@ fn unit_tick(
                     lua_lock.scope(|s| {
                         let handle = UnitHandle {
                             movement: &mut movement,
-                            clock: &clock
+                            clock: &clock,
+                            game_clock: &game_clock
                         };
                         let lua_handle = s.create_nonstatic_userdata(handle)?;
                         on_tick.call(lua_handle)?;
@@ -180,6 +187,10 @@ fn unit_tick(
             };
         }
     }
+}
+
+fn game_clock_tick(mut clock: ResMut<GameClock>, time: Res<Time>) {
+    clock.0.tick(time.delta());
 }
 
 fn load_sprites(mut commands: Commands, assets: Res<AssetServer>) {
@@ -204,12 +215,14 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(32.0))
         .add_plugin(RapierDebugRenderPlugin::default())
+        .insert_resource(GameClock(Stopwatch::default()))
         .insert_resource(GameTickTimer(Timer::from_seconds(1.0/60.0, true)))
         .add_startup_system_to_stage(StartupStage::PreStartup, load_sprites)
         .add_startup_system(spawn_walls)
         .add_startup_system(spawn_unit)
         .add_startup_system(spawn_camera)
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
+        .add_system(game_clock_tick)
         .add_system(handle_movement)
         .add_system(move_and_zoom_camera)
         .run();
