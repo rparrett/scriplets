@@ -132,7 +132,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
         .insert(UnitClock(Stopwatch::default()))
         .insert(Movement {
                 name: "".into(),
-                movement_type: MovementType::Accelerated,
+                movement_type: MovementType::Omnidirectional,
                 speed: 1.0,
                 max_speed: 1.0,
                 max_speed_backwards: None,
