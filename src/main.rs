@@ -174,7 +174,6 @@ fn spawn_unit(
         .insert(UnitClock(Stopwatch::default()))
         .insert(component_prototypes.movement.get("default").unwrap().clone())
         .insert(LuaState::new(lua))
-        .insert_bundle(TransformBundle::default())
         .insert(Collider::cuboid(0.499, 0.499))
         .insert(RigidBody::KinematicPositionBased)
         .insert_bundle(SpriteBundle {
