@@ -20,6 +20,7 @@ pub struct Unit;
 
 #[derive(Component)]
 pub struct Movement {
+    name: String,
     speed: f32,
     input_move: Vec2
 }
