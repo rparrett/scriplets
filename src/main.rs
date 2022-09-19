@@ -1,6 +1,6 @@
-use std::{sync::Mutex, collections::HashMap};
+use std::{sync::Mutex, collections::HashMap, path::PathBuf, fs::File};
 use mlua::prelude::*;
-use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, reflect::TypeUuid};
+use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, reflect::TypeUuid, asset::AssetServerSettings};
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Deserializer};
 
@@ -327,13 +327,21 @@ fn game_clock_tick(mut clock: ResMut<GameClock>, time: Res<Time>) {
     clock.0.tick(time.delta());
 }
 
-fn load_assets(mut commands: Commands, assets: Res<AssetServer>) {
+fn load_assets(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    asset_settings: Res<AssetServerSettings>)
+{
     let unit_sprite = assets.load("unit.png");
     commands.insert_resource(UnitSprite(unit_sprite));
     let wall_sprite = assets.load("wall.png");
     commands.insert_resource(WallSprite(wall_sprite));
     let component_prototypes = assets.load("prototypes.json");
     commands.insert_resource(ComponentPrototypesAsset(component_prototypes));
+    let prototypes_path = PathBuf::from(&asset_settings.asset_folder).join("prototypes.json");
+    let prototypes_file = File::open(prototypes_path).unwrap();
+    let prototypes: ComponentPrototypes = serde_json::from_reader(prototypes_file).unwrap();
+    commands.insert_resource(prototypes)
 }
 
 fn main() {
