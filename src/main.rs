@@ -21,7 +21,7 @@ pub struct Unit;
 #[derive(Component)]
 pub struct Movement {
     speed: f32,
-    next_move: Vec2
+    input_move: Vec2
 }
 
 pub struct GameTickTimer(Timer);
@@ -36,7 +36,7 @@ pub struct UnitHandle<'a> {
 impl LuaUserData for UnitHandle<'_> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method_mut("move", |_lua, mut handle, args: (f32, f32)| {
-            handle.movement.next_move = Vec2::from(args);
+            handle.movement.input_move = Vec2::from(args);
             Ok(())
         });
     }
@@ -82,7 +82,7 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     lua.load("function on_tick(handle) handle:move(1, 1) end").exec().unwrap();
     commands.spawn()
         .insert(Unit)
-        .insert(Movement{speed:1.0, next_move: Vec2::splat(0.0)})
+        .insert(Movement{speed:1.0, input_move: Vec2::splat(0.0)})
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
         .insert(Collider::cuboid(0.5, 0.5))
@@ -127,8 +127,8 @@ fn handle_movement(
     rapier_context: Res<RapierContext>)
 {
     for (entity, mut movement, mut transform, collider) in units.iter_mut() {
-        if movement.next_move != Vec2::ZERO {
-            let delta = movement.next_move.clamp_length_max(1.0) * (movement.speed / 60.0);
+        if movement.input_move != Vec2::ZERO {
+            let delta = movement.input_move.clamp_length_max(1.0) * (movement.speed / 60.0);
             let shape_pos = transform.translation.truncate();
             let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
             let max_toi = 1.0;
@@ -138,7 +138,7 @@ fn handle_movement(
             if rapier_context.cast_shape(shape_pos, shape_rot, delta, collider, max_toi, filter).is_none() {
                 transform.translation += delta.extend(0.0);
             }
-            movement.next_move = Vec2::ZERO;
+            movement.input_move = Vec2::ZERO;
         }
     }
 }
