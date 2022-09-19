@@ -161,10 +161,8 @@ fn handle_movement(
 
 fn unit_tick(
     mut units: Query<(&LuaState, &mut Movement, &mut UnitClock), With<Unit>>,
-    game_clock: Res<GameClock>,
-    time: Res<Time>) 
+    game_clock: Res<GameClock>) 
 {
-    units.iter_mut().for_each(|(_, _, mut unit_clock)| {unit_clock.0.tick(time.delta());});
     for (lua, mut movement, clock) in units.iter_mut() {
         let lua_lock = lua.0.lock().unwrap();
         {
@@ -183,6 +181,10 @@ fn unit_tick(
             };
         };
     }
+}
+
+fn tick_units_clocks(mut units: Query<&mut UnitClock, With<Unit>>, time: Res<Time>) {
+    units.iter_mut().for_each(|mut unit| {unit.0.tick(time.delta());})
 }
 
 fn game_clock_tick(mut clock: ResMut<GameClock>, time: Res<Time>) {
@@ -216,6 +218,7 @@ fn main() {
         .add_startup_system(spawn_walls)
         .add_startup_system(spawn_unit)
         .add_startup_system(spawn_camera)
+        .add_system_to_stage(CoreStage::First, tick_units_clocks)
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
         .add_system(game_clock_tick)
         .add_system(handle_movement)
