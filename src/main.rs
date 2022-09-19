@@ -22,8 +22,10 @@ pub struct Unit;
 pub struct Movement {
     name: String,
     movement_type: MovementType,
-    speed: f32,
-    input_move: Vec2
+    speed: f32, // tiles / second
+    rotation_speed: f32, // degrees / second
+    input_move: Vec2,
+    input_rotation: f32
 }
 
 pub enum MovementType {
@@ -50,6 +52,10 @@ impl LuaUserData for UnitHandle<'_> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method_mut("move", |_lua, mut handle, args: (f32, f32)| {
             handle.movement.input_move = Vec2::from(args);
+            Ok(())
+        });
+        methods.add_method_mut("rotate", |_lua, mut handle, rot: f32| {
+            handle.movement.input_rotation = rot;
             Ok(())
         });
     }
@@ -101,7 +107,12 @@ fn move_and_zoom_camera(
 
 fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
     let lua = Lua::new();
-    lua.load("function on_tick(handle) handle:move(1, 1) end").exec().unwrap();
+    lua.load(r#"
+        function on_tick(handle)
+            handle:move(1, 0)
+            handle:rotate(1.0)
+        end
+        "#).exec().unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
@@ -109,7 +120,9 @@ fn spawn_unit(mut commands: Commands, unit_sprite: Res<UnitSprite>) {
                 name: "".into(),
                 movement_type: MovementType::Omnidirectional,
                 speed: 1.0,
-                input_move: Vec2::splat(0.0)
+                rotation_speed: 90.0,
+                input_move: Vec2::ZERO,
+                input_rotation: 0.0
         })
         .insert(LuaState::new(lua))
         .insert_bundle(TransformBundle::default())
@@ -158,6 +171,10 @@ fn handle_movement(
     for (entity, mut movement, mut transform, collider) in units.iter_mut() {
         match movement.movement_type {
              MovementType::Omnidirectional => {
+                 if movement.input_rotation != 0.0 {
+                     let rotation = Quat::from_rotation_z((movement.rotation_speed * movement.input_rotation * std::f32::consts::PI) / (180.0 * 60.0));
+                     transform.rotation *= rotation;
+                 }
                  if movement.input_move != Vec2::ZERO {
                     let unrotated_move = movement.input_move.clamp_length_max(1.0) * (movement.speed / 60.0);
                     let delta = Mat2::from_cols(transform.right().truncate(), transform.up().truncate()) * unrotated_move;
