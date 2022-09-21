@@ -86,7 +86,7 @@ pub struct WallSprite(Handle<Image>);
 pub struct ComponentPrototypesAsset(Handle<ComponentPrototypes>);
 
 pub struct UnitHandle<'a> {
-    movement: &'a mut Movement,
+    movement: Option<&'a mut Movement>,
     transform: &'a Transform,
     clock: &'a UnitClock,
     game_clock: &'a GameClock
@@ -94,12 +94,16 @@ pub struct UnitHandle<'a> {
 
 impl LuaUserData for UnitHandle<'_> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("move", |_lua, mut handle, args: (f32, f32)| {
-            handle.movement.input_move = Vec2::from(args);
+        methods.add_method_mut("move", |_lua, handle, args: (f32, f32)| {
+            if let Some(movement) = &mut handle.movement {
+                movement.input_move = Vec2::from(args);
+            };
             Ok(())
         });
-        methods.add_method_mut("rotate", |_lua, mut handle, rot: f32| {
-            handle.movement.input_rotation = rot;
+        methods.add_method_mut("rotate", |_lua, handle, rot: f32| {
+            if let Some(movement) = &mut handle.movement {
+                movement.input_rotation = rot;
+            }
             Ok(())
         });
     }
@@ -286,7 +290,7 @@ fn handle_movement(
 }
 
 fn unit_tick(
-    mut units: Query<(&LuaState, &mut Movement, &mut UnitClock, &Transform), With<Unit>>,
+    mut units: Query<(&LuaState, Option<&mut Movement>, &mut UnitClock, &Transform), With<Unit>>,
     game_clock: Res<GameClock>) 
 {
     for (lua, mut movement, clock, transform) in units.iter_mut() {
@@ -296,7 +300,7 @@ fn unit_tick(
             if let Some(on_tick) = globals.get::<_, Option<LuaFunction>>("on_tick").unwrap() {
                 lua_lock.scope(|s| {
                     let handle = UnitHandle {
-                        movement: &mut movement,
+                        movement: movement.as_deref_mut(),
                         transform,
                         clock: &clock,
                         game_clock: &game_clock
