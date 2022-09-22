@@ -23,8 +23,10 @@ impl LuaState {
 #[derive(Component)]
 pub struct Unit;
 
-pub trait ComponentPrototype<'de>: Deserialize<'de> {
+pub trait ComponentPrototype<'de, T: Component = Self>: Deserialize<'de> {
     fn name(&self) -> &String;
+    fn to_component(&self) -> T;
+    fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<T>;
 }
 
 #[derive(Deserialize)]
@@ -33,8 +35,8 @@ pub struct ComponentPrototypes {
     movement: HashMap<String, Movement>
 }
 
-pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, T: ComponentPrototype<'de>>(deserializer: D) -> Result<HashMap<String, T>, D::Error> {
-    Ok(Vec::<T>::deserialize(deserializer)?.into_iter().map(|p| (p.name().clone(), p)).collect())
+pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'de, T>, T: Component>(deserializer: D) -> Result<HashMap<String, C>, D::Error> {
+    Ok(Vec::<C>::deserialize(deserializer)?.into_iter().map(|p| (p.name().clone(), p)).collect())
 }
 
 #[derive(Component, Deserialize, Clone)]
@@ -64,6 +66,14 @@ pub struct Movement {
 impl ComponentPrototype<'_> for Movement {
     fn name(&self) -> &String {
         &self.name
+    }
+
+    fn to_component(&self) -> Self {
+        self.clone()
+    }
+
+    fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<Self> {
+        prototypes_table.movement.get(name).map(Self::to_component)
     }
 }
 
@@ -171,10 +181,11 @@ fn spawn_unit(
            handle:move(1, 1)
         end
         "#).exec().unwrap();
+    let movement = Movement::from_pt(&component_prototypes, "default").unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
-        .insert(component_prototypes.movement.get("default").unwrap().clone())
+        .insert(movement)
         .insert(LuaState::new(lua))
         .insert(Collider::cuboid(0.499, 0.499))
         .insert(RigidBody::KinematicPositionBased)
