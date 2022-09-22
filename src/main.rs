@@ -24,7 +24,7 @@ impl LuaState {
 pub struct Unit;
 
 pub trait ComponentPrototype<'de, T: Component = Self>: Deserialize<'de> {
-    fn name(&self) -> &String;
+    fn name(&self) -> &str;
     fn to_component(&self) -> T;
     fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<T>;
 }
@@ -36,7 +36,7 @@ pub struct ComponentPrototypes {
 }
 
 pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'de, T>, T: Component>(deserializer: D) -> Result<HashMap<String, C>, D::Error> {
-    Ok(Vec::<C>::deserialize(deserializer)?.into_iter().map(|p| (p.name().clone(), p)).collect())
+    Ok(Vec::<C>::deserialize(deserializer)?.into_iter().map(|p| (p.name().to_string(), p)).collect())
 }
 
 #[derive(Component, Deserialize, Clone)]
@@ -64,7 +64,7 @@ pub struct Movement {
 }
 
 impl ComponentPrototype<'_> for Movement {
-    fn name(&self) -> &String {
+    fn name(&self) -> &str {
         &self.name
     }
 
