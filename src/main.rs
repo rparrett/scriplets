@@ -3,6 +3,7 @@ use mlua::prelude::*;
 use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, asset::AssetServerSettings};
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Deserializer};
+use scriplets_derive::ComponentPrototype;
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
@@ -39,7 +40,8 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'d
     Ok(Vec::<C>::deserialize(deserializer)?.into_iter().map(|p| (p.name().to_string(), p)).collect())
 }
 
-#[derive(Component, Deserialize, Clone)]
+#[derive(Component, Deserialize, Clone, ComponentPrototype)]
+#[prot_category(movement)]
 pub struct Movement {
     name: String,
     movement_type: MovementType,
@@ -61,20 +63,6 @@ pub struct Movement {
     input_move: Vec2,
     #[serde(skip)]
     input_rotation: f32
-}
-
-impl ComponentPrototype<'_> for Movement {
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    fn to_component(&self) -> Self {
-        self.clone()
-    }
-
-    fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<Self> {
-        prototypes_table.movement.get(name).map(Self::to_component)
-    }
 }
 
 #[derive(Deserialize, Clone)]
