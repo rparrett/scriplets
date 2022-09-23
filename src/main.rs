@@ -273,7 +273,7 @@ fn handle_movement(
                                 acceleration
                             }
                         };
-                        (movement.speed + acceleration * move_vec.x).clamp(max_speed_backwards, max_speed)
+                        (movement.speed + acceleration * move_vec.x / 60.0).clamp(max_speed_backwards, max_speed)
                     };
                     movement.speed = new_speed
                 }
