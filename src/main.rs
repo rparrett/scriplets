@@ -40,6 +40,11 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'d
     Ok(Vec::<C>::deserialize(deserializer)?.into_iter().map(|p| (p.name().to_string(), p)).collect())
 }
 
+// TODO: hand_brake
+//  Either true or false, can only be pulled when fully stopped
+// TODO: reimplement acceleration movement type to support steering around a point
+// TODO: rotation_offset
+//  Offsets the position from which a perpendicular is casted.
 #[derive(Component, Deserialize, Clone, ComponentPrototype)]
 #[prot_category(movement)]
 pub struct Movement {
