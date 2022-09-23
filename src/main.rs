@@ -8,6 +8,11 @@ use scriplets_derive::ComponentPrototype;
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
 
+// General TODO list
+// - split into client and server
+// - code editing gui
+
+// TODO: program
 #[derive(Component)]
 pub struct LuaState {
     lua: Mutex<Lua>
