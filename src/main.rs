@@ -42,7 +42,7 @@ impl LuaState {
 pub struct Unit;
 
 #[derive(Deserialize)]
-pub struct ComponentPrototypes {
+pub struct Prototypes {
     #[serde(deserialize_with = "hashmap_from_sequence")]
     movement: HashMap<String, Movement>
 }
@@ -50,7 +50,7 @@ pub struct ComponentPrototypes {
 pub trait ComponentPrototype<'de, T: Component = Self>: Deserialize<'de> {
     fn name(&self) -> &str;
     fn to_component(&self) -> T;
-    fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<T>;
+    fn from_pt(prototypes_table: &Prototypes, name: &str) -> Option<T>;
 }
 
 pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'de, T>, T: Component>(deserializer: D) -> Result<HashMap<String, C>, D::Error> {
@@ -187,7 +187,7 @@ fn move_and_zoom_camera(
 fn spawn_unit(
     mut commands: Commands,
     unit_sprite: Res<UnitSprite>,
-    component_prototypes: Res<ComponentPrototypes>)
+    component_prototypes: Res<Prototypes>)
 {
     let lua = Lua::new();
     lua.load(r#"
@@ -356,7 +356,7 @@ fn load_assets(
     commands.insert_resource(WallSprite(wall_sprite));
     let prototypes_path = PathBuf::from(&asset_settings.asset_folder).join("prototypes.json");
     let prototypes_file = File::open(prototypes_path).unwrap();
-    let prototypes: ComponentPrototypes = serde_json::from_reader(prototypes_file).unwrap();
+    let prototypes: Prototypes = serde_json::from_reader(prototypes_file).unwrap();
     commands.insert_resource(prototypes)
 }
 

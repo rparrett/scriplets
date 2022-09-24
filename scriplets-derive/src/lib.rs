@@ -30,7 +30,7 @@ pub fn component_prototype_derive(input: TokenStream) -> TokenStream {
                     self.clone()
                 }
 
-                fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<Self> {
+                fn from_pt(prototypes_table: &Prototypes, name: &str) -> Option<Self> {
                     prototypes_table.#(#prot_table_category)*.get(name).map(Self::to_component)
                 }
             }
