@@ -41,16 +41,16 @@ impl LuaState {
 #[derive(Component)]
 pub struct Unit;
 
-pub trait ComponentPrototype<'de, T: Component = Self>: Deserialize<'de> {
-    fn name(&self) -> &str;
-    fn to_component(&self) -> T;
-    fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<T>;
-}
-
 #[derive(Deserialize)]
 pub struct ComponentPrototypes {
     #[serde(deserialize_with = "hashmap_from_sequence")]
     movement: HashMap<String, Movement>
+}
+
+pub trait ComponentPrototype<'de, T: Component = Self>: Deserialize<'de> {
+    fn name(&self) -> &str;
+    fn to_component(&self) -> T;
+    fn from_pt(prototypes_table: &ComponentPrototypes, name: &str) -> Option<T>;
 }
 
 pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'de, T>, T: Component>(deserializer: D) -> Result<HashMap<String, C>, D::Error> {
