@@ -9,6 +9,7 @@ edition = "2021"
 # Reminder: for more robust and convenient camera movement, use bevy_mod_raycast
 
 [features]
+default = ["debug"]
 debug = ["bevy_rapier2d/debug-render", "bevy/dynamic"]
 
 [dependencies]
