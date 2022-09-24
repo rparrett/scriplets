@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 # Reminder: use blake3 for checking if prototypes are equal at the client and server
+# Reminder: for more robust and convenient camera movement, use bevy_mod_raycast
 
 [dependencies]
 mlua = {version = "0.8", features = ["lua54", "vendored", "send"]}
