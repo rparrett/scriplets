@@ -46,8 +46,9 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'d
 }
 
 // TODO: hand_brake
-//  Either true or false, can only be pulled when fully stopped
+//  Either true or false, can only be pulled when fully stopped. Prevents *any* movement.
 // TODO: reimplement acceleration movement type to support steering around a point
+//  Or make a new movement type which works as stated above
 // TODO: rotation_offset
 //  Offsets the position from which a perpendicular is casted.
 #[derive(Component, Deserialize, Clone, ComponentPrototype)]
@@ -98,6 +99,7 @@ pub struct UnitHandle<'a> {
     game_clock: &'a GameClock
 }
 
+// TODO: allow reading of Movement component parameters
 impl LuaUserData for UnitHandle<'_> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method_mut("move", |_lua, handle, args: (f32, f32)| {
