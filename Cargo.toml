@@ -8,10 +8,13 @@ edition = "2021"
 # Reminder: use blake3 for checking if prototypes are equal at the client and server
 # Reminder: for more robust and convenient camera movement, use bevy_mod_raycast
 
+[features]
+debug = ["bevy_rapier2d/debug-render", "bevy/dynamic"]
+
 [dependencies]
 mlua = {version = "0.8", features = ["lua54", "vendored", "send"]}
-bevy = {version = "0.8", features = ["dynamic"]}
-bevy_rapier2d = {version = "0.16", features = ["debug-render", "parallel"]}
+bevy = {version = "0.8", features = []}
+bevy_rapier2d = {version = "0.16", default_features = false, features = ["parallel", "dim2"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 scriplets-derive = {path = "./scriplets-derive"}

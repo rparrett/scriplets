@@ -350,8 +350,8 @@ fn load_assets(
 
 fn main() {
     let height = 900.0;
-    App::new()
-        .insert_resource(ClearColor(CLEAR_COLOR))
+    let mut app = App::new();
+    app.insert_resource(ClearColor(CLEAR_COLOR))
         .insert_resource(WindowDescriptor {
             title: "Scriplets".to_string(),
             present_mode: PresentMode::Fifo,
@@ -362,7 +362,6 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(32.0))
-        .add_plugin(RapierDebugRenderPlugin::default())
         .insert_resource(GameClock(Stopwatch::default()))
         .add_startup_system_to_stage(StartupStage::PreStartup, load_assets)
         .add_startup_system(spawn_walls)
@@ -372,6 +371,8 @@ fn main() {
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
         .add_system(game_clock_tick)
         .add_system(handle_movement)
-        .add_system(move_and_zoom_camera)
-        .run();
+        .add_system(move_and_zoom_camera);
+    #[cfg(feature = "debug")]
+    app.add_plugin(RapierDebugRenderPlugin::default());
+    app.run()
 }
