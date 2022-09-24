@@ -100,6 +100,8 @@ pub struct UnitHandle<'a> {
 }
 
 // TODO: allow reading of Movement component parameters
+// TODO: after making a planet map, methods for getting nearest transition tile or a tile adjacent
+//  to transition tile
 impl LuaUserData for UnitHandle<'_> {
     fn add_methods<'lua, M: LuaUserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method_mut("move", |_lua, handle, args: (f32, f32)| {
