@@ -12,6 +12,18 @@ const RESOLUTION: f32 = 16.0 / 9.0;
 // - split into client and server
 // - code editing gui
 
+// General ideas
+//  Black box: a component that can store data when unit is running and extracted from a unit
+//  corpse as an item and be read by other units.
+//  
+//  Items
+//  Units with manipulators specify an area that they want to pick up from. They are given a list
+//  of what can be picked up and then they choose what is picked up
+//
+//  Items with data
+//  Similar to black box, can have data written and read. Can be encrypted. No actual encryption
+//  will be done, just comparing the keys.
+
 // TODO: program
 #[derive(Component)]
 pub struct LuaState {
