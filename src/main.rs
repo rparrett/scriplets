@@ -156,7 +156,7 @@ impl LuaUserData for UnitHandle<'_> {
         fields.add_field_method_get("movement", |lua, handle| {
             if let Some(movement) = &handle.movement {
                 let movement_type = match movement.movement_type {
-                    MovementType::AcceleratedSteering => "accelerated",
+                    MovementType::AcceleratedSteering => "accelerated-steering",
                     MovementType::Omnidirectional => "omnidirectional",
                     MovementType::Train => "train"
                 };
