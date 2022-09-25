@@ -60,8 +60,6 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'d
 
 // TODO: reimplement acceleration movement type to support steering around a point
 //  Or make a new movement type which works as stated above
-// TODO: rotation_offset
-//  Offsets the position from which a perpendicular is casted.
 #[derive(Component, Deserialize, Clone, ComponentPrototype)]
 #[prot_category(movement)]
 pub struct Movement {
@@ -82,6 +80,8 @@ pub struct Movement {
     passive_deceleration: f32,
     #[serde(default)]
     rotation_speed: f32, // degrees / second
+    #[serde(default)]
+    rotation_offset: f32,
     // input 
     #[serde(skip)]
     input_move: Vec2,
