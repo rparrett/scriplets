@@ -1,4 +1,4 @@
-use std::{sync::Mutex, collections::HashMap, path::PathBuf, fs::File};
+use std::{sync::Mutex, collections::HashMap, path::PathBuf, fs::File, f32::consts::PI};
 use mlua::prelude::*;
 use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, asset::AssetServerSettings};
 use bevy_rapier2d::prelude::*;
@@ -149,7 +149,7 @@ impl LuaUserData for UnitHandle<'_> {
         fields.add_field_method_get("gps", |lua, handle| {
             let position: [f32; 2] = handle.transform.translation.truncate().into();
             let rotation_radians = handle.transform.rotation.to_euler(EulerRot::XYZ).2;
-            let rotation_degrees = -(rotation_radians * 180.0) / std::f32::consts::PI;
+            let rotation_degrees = -(rotation_radians * 180.0) / PI;
             let table = lua.create_table()?;
             table.set("position", position)?;
             table.set("rotation", rotation_degrees)?;
@@ -281,7 +281,7 @@ fn handle_movement(
             MovementType::Omnidirectional => {
                 if !movement.hand_brake {
                     if movement.input_rotation != 0.0 {
-                        let rotation = Quat::from_rotation_z(-(movement.rotation_speed * movement.input_rotation.clamp(-1.0, 1.0) * std::f32::consts::PI) / (180.0 * 60.0));
+                        let rotation = Quat::from_rotation_z(-(movement.rotation_speed * movement.input_rotation.clamp(-1.0, 1.0) * PI) / (180.0 * 60.0));
                         transform.rotation *= rotation;
                     }
                     if movement.input_move != Vec2::ZERO {
@@ -301,53 +301,59 @@ fn handle_movement(
                 }
             },
             MovementType::AcceleratedSteering => {
-                let move_vec = movement.input_move.clamp(Vec2::NEG_X + Vec2::NEG_Y, Vec2::X + Vec2::Y);
-                if !movement.hand_brake {
-                    if move_vec.y != 0.0 {
-                        let rotation = Quat::from_rotation_z(-(movement.rotation_speed * move_vec.y * std::f32::consts::PI) / (180.0 * 60.0));
-                        transform.rotation *= rotation;
-                    }
-                }
-                if move_vec.x != 0.0 || movement.hand_brake {
-                    let max_speed = movement.max_speed;
-                    let max_speed_backwards = -movement.max_speed_backwards.unwrap_or(max_speed);
-                    let acceleration = movement.acceleration;
-                    let braking_acceleration = -movement.braking_acceleration.unwrap_or(acceleration);
-                    let passive_deceleration = movement.passive_deceleration;
-                    let new_speed = {
-                        let acceleration = {
-                            if movement.hand_brake {
-                                if movement.speed > 0.0 {
-                                    braking_acceleration
-                                } else {
-                                    -braking_acceleration
-                                }
+                let input_move_vec = movement.input_move.clamp(Vec2::NEG_X + Vec2::NEG_Y, Vec2::X + Vec2::Y);
+                let max_speed = movement.max_speed;
+                let max_speed_backwards = -movement.max_speed_backwards.unwrap_or(max_speed);
+                let acceleration = movement.acceleration;
+                let braking_acceleration = -movement.braking_acceleration.unwrap_or(acceleration);
+                let passive_deceleration = movement.passive_deceleration;
+                let new_speed = {
+                    let acceleration = {
+                        if movement.hand_brake {
+                            if movement.speed > 0.0 {
+                                braking_acceleration
                             } else {
-                                if (movement.speed > 0.0 && move_vec.x > 0.0) || (movement.speed < 0.0 && move_vec.x < 0.0) {
-                                    acceleration
-                                } else if (movement.speed > 0.0 && move_vec.x < 0.0) || (movement.speed < 0.0 && move_vec.x > 0.0) {
-                                    braking_acceleration
-                                } else if movement.speed != 0.0 {
-                                    -passive_deceleration
-                                } else {
-                                    acceleration
-                                }
+                                -braking_acceleration
                             }
-                        };
-                        (movement.speed + acceleration * move_vec.x / 60.0).clamp(max_speed_backwards, max_speed)
+                        } else {
+                            if (movement.speed > 0.0 && input_move_vec.x > 0.0) || (movement.speed < 0.0 && input_move_vec.x < 0.0) {
+                                acceleration
+                            } else if (movement.speed > 0.0 && input_move_vec.x < 0.0) || (movement.speed < 0.0 && input_move_vec.x > 0.0) {
+                                braking_acceleration
+                            } else if movement.speed != 0.0 {
+                                -passive_deceleration
+                            } else {
+                                acceleration
+                            }
+                        }
                     };
-                    movement.speed = new_speed
-                }
+                    (movement.speed + acceleration * input_move_vec.x / 60.0).clamp(max_speed_backwards, max_speed)
+                };
+                movement.speed = new_speed;
                 if movement.speed != 0.0 {
-                    let delta = transform.up().truncate() * (movement.speed / 60.0);
-                    let shape_pos = transform.translation.truncate();
-                    let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
+                    let linear_delta = movement.speed / 60.0;
+                    let starting_translation = transform.translation.truncate();
+                    let mut rot_angle = (movement.rotation_speed * PI / (60.0 * 180.0)) * input_move_vec.y;
+                    if movement.speed < 0.0 {
+                        rot_angle = -rot_angle;
+                    }
+                    let result_rotation = transform.rotation * Quat::from_rotation_z(-rot_angle);
+                    let turning_scale = linear_delta / rot_angle;
+                    let rot_vec_normalized = Vec2::from_angle(rot_angle);
+                    let turning_radius = transform.right().truncate() * turning_scale;
+                    let turning_origin = starting_translation - turning_radius;
+                    let result_translation = turning_radius.rotate(rot_vec_normalized) + turning_origin;
+                    
+                    let delta = result_translation - starting_translation;
+                    let shape_pos = result_translation;
+                    let shape_rot = result_rotation.to_euler(EulerRot::XYZ).2;
                     let max_toi = 1.0;
                     let filter = QueryFilter::default()
                         .exclude_collider(entity)
                         .exclude_sensors();
                     if rapier_context.cast_shape(shape_pos, shape_rot, delta, collider, max_toi, filter).is_none() {
-                        transform.translation += delta.extend(0.0);
+                        transform.translation = result_translation.extend(0.0);
+                        transform.rotation = result_rotation;
                     }
                     movement.input_move = Vec2::ZERO
                 }
@@ -390,6 +396,12 @@ fn game_clock_tick(mut clock: ResMut<GameClock>, time: Res<Time>) {
     clock.0.tick(time.delta());
 }
 
+fn print_units_positions(units: Query<&Transform, With<Unit>>) {
+    for (i, unit) in units.iter().enumerate() {
+        println!("Unit #{}: x {}, y {}", i, unit.translation.x, unit.translation.y)
+    }
+}
+
 fn load_assets(
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -426,6 +438,7 @@ fn main() {
         .add_startup_system(spawn_camera)
         .add_system_to_stage(CoreStage::First, tick_units_clocks)
         .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
+        .add_system(print_units_positions)
         .add_system(game_clock_tick)
         .add_system(handle_movement)
         .add_system(move_and_zoom_camera);
