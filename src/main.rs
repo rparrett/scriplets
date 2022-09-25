@@ -68,6 +68,7 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'d
 pub struct Movement {
     name: String,
     movement_type: MovementType,
+    // movement characteristics
     #[serde(default)]
     speed: f32, // tiles / second
     #[serde(default)]
@@ -82,6 +83,7 @@ pub struct Movement {
     passive_deceleration: f32,
     #[serde(default)]
     rotation_speed: f32, // degrees / second
+    // input 
     #[serde(skip)]
     input_move: Vec2,
     #[serde(skip)]
