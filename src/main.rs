@@ -24,6 +24,8 @@ const RESOLUTION: f32 = 16.0 / 9.0;
 //  Items with data
 //  Similar to black box, can have data written and read. Can be encrypted. No actual encryption
 //  will be done, just comparing the keys.
+//
+//  Possible new language: wasm
 
 // TODO: program
 #[derive(Component)]
