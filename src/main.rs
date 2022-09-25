@@ -87,7 +87,9 @@ pub struct Movement {
     #[serde(skip)]
     input_move: Vec2,
     #[serde(skip)]
-    input_rotation: f32
+    input_rotation: f32,
+    #[serde(default)]
+    hand_brake: bool
 }
 
 #[derive(Deserialize, Clone)]
@@ -247,12 +249,12 @@ fn handle_movement(
 {
     for (entity, mut movement, mut transform, collider) in units.iter_mut() {
         match movement.movement_type {
-             MovementType::Omnidirectional => {
-                 if movement.input_rotation != 0.0 {
-                     let rotation = Quat::from_rotation_z(-(movement.rotation_speed * movement.input_rotation.clamp(-1.0, 1.0) * std::f32::consts::PI) / (180.0 * 60.0));
-                     transform.rotation *= rotation;
-                 }
-                 if movement.input_move != Vec2::ZERO {
+            MovementType::Omnidirectional => {
+                if movement.input_rotation != 0.0 {
+                    let rotation = Quat::from_rotation_z(-(movement.rotation_speed * movement.input_rotation.clamp(-1.0, 1.0) * std::f32::consts::PI) / (180.0 * 60.0));
+                    transform.rotation *= rotation;
+                }
+                if movement.input_move != Vec2::ZERO {
                     let unrotated_move = movement.input_move.clamp_length_max(1.0) * (movement.speed / 60.0);
                     let delta = Mat2::from_cols(transform.right().truncate(), transform.up().truncate()) * unrotated_move;
                     let shape_pos = transform.translation.truncate();
@@ -270,8 +272,8 @@ fn handle_movement(
             MovementType::Accelerated => {
                 let move_vec = movement.input_move.clamp(Vec2::NEG_X + Vec2::NEG_Y, Vec2::X + Vec2::Y);
                 if move_vec.y != 0.0 {
-                     let rotation = Quat::from_rotation_z(-(movement.rotation_speed * move_vec.y * std::f32::consts::PI) / (180.0 * 60.0));
-                     transform.rotation *= rotation;
+                    let rotation = Quat::from_rotation_z(-(movement.rotation_speed * move_vec.y * std::f32::consts::PI) / (180.0 * 60.0));
+                    transform.rotation *= rotation;
                 }
                 if move_vec.x != 0.0 {
                     let max_speed = movement.max_speed;
