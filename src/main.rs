@@ -4,6 +4,7 @@ use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Deserializer};
 use scriplets_derive::ComponentPrototype;
+use strum::AsRefStr;
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
@@ -90,7 +91,7 @@ pub struct Movement {
     hand_brake: bool
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, AsRefStr)]
 #[serde(rename_all = "kebab-case")]
 pub enum MovementType {
     Omnidirectional,
