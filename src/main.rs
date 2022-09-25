@@ -57,8 +57,6 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'d
     Ok(Vec::<C>::deserialize(deserializer)?.into_iter().map(|p| (p.name().to_string(), p)).collect())
 }
 
-// TODO: hand_brake
-//  Either true or false, can only be pulled when fully stopped. Prevents *any* movement.
 // TODO: reimplement acceleration movement type to support steering around a point
 //  Or make a new movement type which works as stated above
 // TODO: rotation_offset
