@@ -94,7 +94,7 @@ pub struct Movement {
 #[serde(rename_all = "kebab-case")]
 pub enum MovementType {
     Omnidirectional,
-    Accelerated,
+    AcceleratedSteering,
     Train
 }
 
@@ -156,7 +156,7 @@ impl LuaUserData for UnitHandle<'_> {
         fields.add_field_method_get("movement", |lua, handle| {
             if let Some(movement) = &handle.movement {
                 let movement_type = match movement.movement_type {
-                    MovementType::Accelerated => "accelerated",
+                    MovementType::AcceleratedSteering => "accelerated",
                     MovementType::Omnidirectional => "omnidirectional",
                     MovementType::Train => "train"
                 };
@@ -302,7 +302,7 @@ fn handle_movement(
                     }
                 }
             },
-            MovementType::Accelerated => {
+            MovementType::AcceleratedSteering => {
                 let move_vec = movement.input_move.clamp(Vec2::NEG_X + Vec2::NEG_Y, Vec2::X + Vec2::Y);
                 if !movement.hand_brake {
                     if move_vec.y != 0.0 {
