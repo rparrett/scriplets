@@ -154,6 +154,34 @@ impl LuaUserData for UnitHandle<'_> {
             table.set("rotation", rotation_degrees)?;
             Ok(table)
         });
+        fields.add_field_method_get("movement", |lua, handle| {
+            if let Some(movement) = &handle.movement {
+                let movement_type = match movement.movement_type {
+                    MovementType::Accelerated => "accelerated",
+                    MovementType::Omnidirectional => "omnidirectional",
+                    MovementType::Train => "train"
+                };
+                let speed = movement.speed;
+                let max_speed = movement.max_speed;
+                let max_speed_backwards = movement.max_speed_backwards;
+                let acceleration = movement.acceleration;
+                let braking_acceleration = movement.acceleration;
+                let passive_deceleration = movement.passive_deceleration;
+                let rotation_speed = movement.rotation_speed;
+                let table = lua.create_table()?;
+                table.set("movement_type", movement_type)?;
+                table.set("speed", speed)?;
+                table.set("max_speed", max_speed)?;
+                table.set("max_speed_backwards", max_speed_backwards)?;
+                table.set("acceleration", acceleration)?;
+                table.set("braking_acceleration", braking_acceleration)?;
+                table.set("passive_deceleration", passive_deceleration)?;
+                table.set("rotation_speed", rotation_speed)?;
+                Ok(LuaValue::Table(table))
+            } else {
+                Ok(LuaValue::Nil)
+            }
+        })
     }
 }
 
