@@ -157,11 +157,7 @@ impl LuaUserData for UnitHandle<'_> {
         });
         fields.add_field_method_get("movement", |lua, handle| {
             if let Some(movement) = &handle.movement {
-                let movement_type = match movement.movement_type {
-                    MovementType::AcceleratedSteering => "accelerated-steering",
-                    MovementType::Omnidirectional => "omnidirectional",
-                    MovementType::Train => "train"
-                };
+                let movement_type = movement.movement_type.as_ref();
                 let speed = movement.speed;
                 let max_speed = movement.max_speed;
                 let max_speed_backwards = movement.max_speed_backwards;
