@@ -113,7 +113,6 @@ pub struct UnitHandle<'a> {
     game_clock: &'a GameClock
 }
 
-// TODO: allow reading of Movement component parameters
 // TODO: after making a planet map, methods for getting nearest transition tile or a tile adjacent
 //  to transition tile
 impl LuaUserData for UnitHandle<'_> {
