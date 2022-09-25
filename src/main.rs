@@ -278,20 +278,28 @@ fn handle_movement(
                 }
             },
             MovementType::Accelerated => {
+                let move_vec = movement.input_move.clamp(Vec2::NEG_X + Vec2::NEG_Y, Vec2::X + Vec2::Y);
                 if !movement.hand_brake {
-                    let move_vec = movement.input_move.clamp(Vec2::NEG_X + Vec2::NEG_Y, Vec2::X + Vec2::Y);
                     if move_vec.y != 0.0 {
                         let rotation = Quat::from_rotation_z(-(movement.rotation_speed * move_vec.y * std::f32::consts::PI) / (180.0 * 60.0));
                         transform.rotation *= rotation;
                     }
-                    if move_vec.x != 0.0 {
-                        let max_speed = movement.max_speed;
-                        let max_speed_backwards = -movement.max_speed_backwards.unwrap_or(max_speed);
-                        let acceleration = movement.acceleration;
-                        let braking_acceleration = -movement.braking_acceleration.unwrap_or(acceleration);
-                        let passive_deceleration = movement.passive_deceleration;
-                        let new_speed = {
-                            let acceleration = {
+                }
+                if move_vec.x != 0.0 || movement.hand_brake {
+                    let max_speed = movement.max_speed;
+                    let max_speed_backwards = -movement.max_speed_backwards.unwrap_or(max_speed);
+                    let acceleration = movement.acceleration;
+                    let braking_acceleration = -movement.braking_acceleration.unwrap_or(acceleration);
+                    let passive_deceleration = movement.passive_deceleration;
+                    let new_speed = {
+                        let acceleration = {
+                            if movement.hand_brake {
+                                if movement.speed > 0.0 {
+                                    braking_acceleration
+                                } else {
+                                    -braking_acceleration
+                                }
+                            } else {
                                 if (movement.speed > 0.0 && move_vec.x > 0.0) || (movement.speed < 0.0 && move_vec.x < 0.0) {
                                     acceleration
                                 } else if (movement.speed > 0.0 && move_vec.x < 0.0) || (movement.speed < 0.0 && move_vec.x > 0.0) {
@@ -301,24 +309,24 @@ fn handle_movement(
                                 } else {
                                     acceleration
                                 }
-                            };
-                            (movement.speed + acceleration * move_vec.x / 60.0).clamp(max_speed_backwards, max_speed)
+                            }
                         };
-                        movement.speed = new_speed
+                        (movement.speed + acceleration * move_vec.x / 60.0).clamp(max_speed_backwards, max_speed)
+                    };
+                    movement.speed = new_speed
+                }
+                if movement.speed != 0.0 {
+                    let delta = transform.up().truncate() * (movement.speed / 60.0);
+                    let shape_pos = transform.translation.truncate();
+                    let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
+                    let max_toi = 1.0;
+                    let filter = QueryFilter::default()
+                        .exclude_collider(entity)
+                        .exclude_sensors();
+                    if rapier_context.cast_shape(shape_pos, shape_rot, delta, collider, max_toi, filter).is_none() {
+                        transform.translation += delta.extend(0.0);
                     }
-                    if movement.speed != 0.0 {
-                        let delta = transform.up().truncate() * (movement.speed / 60.0);
-                        let shape_pos = transform.translation.truncate();
-                        let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
-                        let max_toi = 1.0;
-                        let filter = QueryFilter::default()
-                            .exclude_collider(entity)
-                            .exclude_sensors();
-                        if rapier_context.cast_shape(shape_pos, shape_rot, delta, collider, max_toi, filter).is_none() {
-                            transform.translation += delta.extend(0.0);
-                        }
-                        movement.input_move = Vec2::ZERO
-                    }
+                    movement.input_move = Vec2::ZERO
                 }
             }
             _ => {}
