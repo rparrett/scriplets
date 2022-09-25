@@ -132,6 +132,12 @@ impl LuaUserData for UnitHandle<'_> {
             }
             Ok(())
         });
+        methods.add_method_mut("toggle_hand_brake", |_lua, handle, ()| {
+            if let Some(movement) = &mut handle.movement {
+                movement.hand_brake = !movement.hand_brake;
+            }
+            Ok(())
+        })
     }
 
     fn add_fields<'lua, F: LuaUserDataFields<'lua, Self>>(fields: &mut F) {
