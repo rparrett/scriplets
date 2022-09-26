@@ -336,7 +336,7 @@ fn handle_movement(
                 movement.speed = new_speed;
                 if movement.speed != 0.0 {
                     let linear_delta = movement.speed / 60.0;
-                    let starting_translation = transform.translation.truncate();
+                    let starting_translation = transform.translation.truncate() + transform.up().truncate() * movement.rotation_offset;
                     let mut rot_angle = (movement.rotation_speed * PI / (60.0 * 180.0)) * input_move_vec.y;
                     if movement.speed < 0.0 {
                         rot_angle = -rot_angle;
@@ -344,9 +344,9 @@ fn handle_movement(
                     let result_rotation = transform.rotation * Quat::from_rotation_z(-rot_angle);
                     let turning_scale = linear_delta / rot_angle;
                     let rot_vec_normalized = Vec2::from_angle(rot_angle);
-                    let turning_radius = transform.right().truncate() * turning_scale;
+                    let turning_radius = transform.right().truncate() + transform.up().truncate() * movement.rotation_offset * turning_scale;
                     let turning_origin = starting_translation - turning_radius;
-                    let result_translation = turning_radius.rotate(rot_vec_normalized) + turning_origin;
+                    let result_translation = turning_radius.rotate(rot_vec_normalized) + turning_origin - transform.up().truncate() * movement.rotation_offset;
                     
                     let delta = result_translation - starting_translation;
                     let shape_pos = result_translation;
