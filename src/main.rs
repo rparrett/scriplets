@@ -232,7 +232,7 @@ fn spawn_unit(
            handle:move(1, 1)
         end
         "#).exec().unwrap();
-    let movement = Movement::from_pt(&component_prototypes, "default-accelerated-steering").unwrap();
+    let movement = Movement::from_pt(&component_prototypes, "default").unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
@@ -290,7 +290,7 @@ fn handle_movement(
                     }
                     if movement.input_move != Vec2::ZERO {
                         let unrotated_move = movement.input_move.clamp_length_max(1.0) * (movement.speed / 60.0);
-                        let delta = Mat2::from_cols(transform.right().truncate(), transform.up().truncate()) * unrotated_move;
+                        let delta = unrotated_move.rotate(transform.right().truncate());
                         let shape_pos = transform.translation.truncate();
                         let shape_rot = transform.rotation.to_euler(EulerRot::XYZ).2;
                         let max_toi = 1.0;
