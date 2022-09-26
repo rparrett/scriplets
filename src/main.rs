@@ -232,7 +232,7 @@ fn spawn_unit(
            handle:move(1, 1)
         end
         "#).exec().unwrap();
-    let movement = Movement::from_pt(&component_prototypes, "default").unwrap();
+    let movement = Movement::from_pt(&component_prototypes, "default-accelerated-steering").unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
