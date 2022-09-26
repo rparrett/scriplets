@@ -167,6 +167,7 @@ impl LuaUserData for UnitHandle<'_> {
                 let braking_acceleration = movement.acceleration;
                 let passive_deceleration = movement.passive_deceleration;
                 let rotation_speed = movement.rotation_speed;
+                let hand_brake = movement.hand_brake;
                 let table = lua.create_table()?;
                 table.set("movement_type", movement_type)?;
                 table.set("speed", speed)?;
@@ -176,6 +177,7 @@ impl LuaUserData for UnitHandle<'_> {
                 table.set("braking_acceleration", braking_acceleration)?;
                 table.set("passive_deceleration", passive_deceleration)?;
                 table.set("rotation_speed", rotation_speed)?;
+                table.set("is_hand_brake_pulled", hand_brake)?;
                 Ok(LuaValue::Table(table))
             } else {
                 Ok(LuaValue::Nil)
