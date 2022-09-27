@@ -93,7 +93,7 @@ pub struct Movement {
     input_move: Vec2,
     #[serde(skip)]
     input_rotation: f32,
-    #[serde(default)]
+    #[serde(skip)]
     hand_brake: bool
 }
 
