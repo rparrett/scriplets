@@ -323,17 +323,16 @@ fn handle_movement(
                             } else {
                                 -braking_acceleration
                             }
+                        } else if (movement.speed > 0.0 && input_move_vec.x > 0.0) || (movement.speed < 0.0 && input_move_vec.x < 0.0) {
+                            acceleration
+                        } else if (movement.speed > 0.0 && input_move_vec.x < 0.0) || (movement.speed < 0.0 && input_move_vec.x > 0.0) {
+                            braking_acceleration
+                        } else if movement.speed != 0.0 {
+                            -passive_deceleration
                         } else {
-                            if (movement.speed > 0.0 && input_move_vec.x > 0.0) || (movement.speed < 0.0 && input_move_vec.x < 0.0) {
-                                acceleration
-                            } else if (movement.speed > 0.0 && input_move_vec.x < 0.0) || (movement.speed < 0.0 && input_move_vec.x > 0.0) {
-                                braking_acceleration
-                            } else if movement.speed != 0.0 {
-                                -passive_deceleration
-                            } else {
-                                acceleration
-                            }
+                            acceleration
                         }
+                        
                     };
                     (movement.speed + acceleration * input_move_vec.x / 60.0).clamp(max_speed_backwards, max_speed)
                 };
