@@ -3,7 +3,7 @@ use mlua::prelude::*;
 use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, asset::AssetServerSettings};
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Deserializer};
-use scriplets_derive::ComponentPrototype;
+use scriplets_derive::{ComponentPrototype, Prototype};
 use strum::AsRefStr;
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
@@ -50,10 +50,14 @@ pub struct Prototypes {
     movement: HashMap<String, Movement>
 }
 
-pub trait ComponentPrototype<'de, T: Component = Self>: Deserialize<'de> {
+pub trait Prototype<'de>: Deserialize<'de> {
     fn name(&self) -> &str;
+    fn from_pt<'a, 'b>(prototypes_table: &'a Prototypes, name: &'b str) -> Option<&'a Self>;
+}
+
+pub trait ComponentPrototype<'de, T: Component = Self>: Prototype<'de> {
     fn to_component(&self) -> T;
-    fn from_pt(prototypes_table: &Prototypes, name: &str) -> Option<T>;
+    fn component_from_pt(prototypes_table: &Prototypes, name: &str) -> Option<T>;
 }
 
 pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'de, T>, T: Component>(deserializer: D) -> Result<HashMap<String, C>, D::Error> {
@@ -62,7 +66,7 @@ pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'d
 
 // TODO: reimplement acceleration movement type to support steering around a point
 //  Or make a new movement type which works as stated above
-#[derive(Component, Deserialize, Clone, ComponentPrototype)]
+#[derive(Component, Prototype, ComponentPrototype, Deserialize, Clone)]
 #[prot_category(movement)]
 pub struct Movement {
     name: String,
@@ -232,7 +236,7 @@ fn spawn_unit(
            handle:move(1, 1)
         end
         "#).exec().unwrap();
-    let movement = Movement::from_pt(&component_prototypes, "default").unwrap();
+    let movement = Movement::component_from_pt(&component_prototypes, "default").unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
