@@ -60,8 +60,8 @@ pub trait ComponentPrototype<'de, T: Component = Self>: Prototype<'de> {
     fn component_from_pt(prototypes_table: &Prototypes, name: &str) -> Option<T>;
 }
 
-pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, C: ComponentPrototype<'de, T>, T: Component>(deserializer: D) -> Result<HashMap<String, C>, D::Error> {
-    Ok(Vec::<C>::deserialize(deserializer)?.into_iter().map(|p| (p.name().to_string(), p)).collect())
+pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, P: Prototype<'de>>(deserializer: D) -> Result<HashMap<String, P>, D::Error> {
+    Ok(Vec::<P>::deserialize(deserializer)?.into_iter().map(|p| (p.name().to_string(), p)).collect())
 }
 
 // TODO: reimplement acceleration movement type to support steering around a point
