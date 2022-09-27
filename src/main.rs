@@ -315,6 +315,8 @@ fn handle_movement(
                 let acceleration = movement.acceleration;
                 let braking_acceleration = -movement.braking_acceleration.unwrap_or(acceleration);
                 let passive_deceleration = movement.passive_deceleration;
+                let is_moving_forward = movement.speed > 0.0;
+                let is_moving_backwards = movement.speed < 0.0;
                 let new_speed = {
                     let acceleration = {
                         if movement.hand_brake {
@@ -334,7 +336,14 @@ fn handle_movement(
                         }
                         
                     };
-                    (movement.speed + acceleration * input_move_vec.x / 60.0).clamp(max_speed_backwards, max_speed)
+                    let new_speed_uncapped = (movement.speed + acceleration * input_move_vec.x / 60.0).clamp(max_speed_backwards, max_speed);
+                    if is_moving_forward {
+                        new_speed_uncapped.clamp(0.0, f32::MAX)
+                    } else if is_moving_backwards {
+                        new_speed_uncapped.clamp(f32::MIN, 0.0)
+                    } else {
+                        new_speed_uncapped
+                    }
                 };
                 movement.speed = new_speed;
                 if movement.speed != 0.0 {
