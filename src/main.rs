@@ -27,17 +27,86 @@ const RESOLUTION: f32 = 16.0 / 9.0;
 //
 //  Possible new language: wasm
 
-// TODO: program
 #[derive(Component)]
-pub struct LuaState {
-    lua: Mutex<Lua>
+pub struct UnitProgram {
+    state: UnitProgramState,
+    program: Box<[u8]>
 }
 
-impl LuaState {
-    fn new(lua: Lua) -> Self {
-        Self{
-            lua: Mutex::new(lua)
+impl UnitProgram {
+    fn tick(&mut self, handle: UnitHandle<'_>) {
+        self.state.tick(handle)
+    } 
+
+    fn reload(&mut self) {
+        self.state.reload(self.program.as_ref())
+    }
+
+    fn new_lua() -> Self {
+        UnitProgram {
+            state: UnitProgramState::new_lua(),
+            program: Box::new([])
         }
+    }
+
+    fn new_lua_with_program(program: &[u8]) -> Self {
+        UnitProgram {
+            state: UnitProgramState::new_lua_with_program(program),
+            program: program.into()
+        }
+    }
+}
+
+pub enum UnitProgramState {
+    Lua(Mutex<Lua>),
+    // wasm TODO
+}
+
+impl UnitProgramState {
+    fn tick(&mut self, handle: UnitHandle<'_>) { // TODO: error handling?
+        match self {
+            Self::Lua(lua) => {
+                let lua = lua.lock().unwrap();
+                if let Some(on_tick_fn) = lua.globals().get::<_, Option<LuaFunction>>("on_tick").unwrap() {
+                    lua.scope(|s| {
+                        let lua_handle = s.create_nonstatic_userdata(LuaUnitHandle{handle})?;
+                        on_tick_fn.call(lua_handle)?;
+                        Ok(())
+                    }).unwrap();
+                };
+            }
+        }
+    }
+
+    fn reload(&mut self, program: &[u8]) {
+        *self = self.new_with_program(program);
+    }
+
+    fn new(&mut self) -> Self {
+        match self {
+            Self::Lua(_) => Self::new_lua()
+        }
+    }
+
+    fn new_lua() -> Self {
+        Self::Lua(Mutex::new(Lua::new()))
+    }
+
+    fn new_with_program(&self, program: &[u8]) -> Self {
+        match self {
+            Self::Lua(_) => Self::new_lua_with_program(program)
+        }
+    }
+
+    fn new_lua_with_program(program: &[u8]) -> Self {
+        let mut result = Self::new_lua();
+        match result {
+            Self::Lua(ref lua) => {
+                let lua = lua.lock().unwrap();
+                lua.load(program).exec().unwrap();
+            }
+        };
+        result
     }
 }
 
@@ -234,18 +303,17 @@ fn spawn_unit(
     unit_sprite: Res<UnitSprite>,
     component_prototypes: Res<Prototypes>)
 {
-    let lua = Lua::new();
-    lua.load(r#"
+    let unit_program = UnitProgram::new_lua_with_program(r#"
         function on_tick(handle)
-           handle:move(1, 1)
+            handle:move(1, 1)
         end
-        "#).exec().unwrap();
+    "#.as_bytes());
     let movement = Movement::component_from_pt(&component_prototypes, "default").unwrap();
     commands.spawn()
         .insert(Unit)
         .insert(UnitClock(Stopwatch::default()))
         .insert(movement)
-        .insert(LuaState::new(lua))
+        .insert(unit_program)
         .insert(Collider::cuboid(0.499, 0.499))
         .insert(RigidBody::KinematicPositionBased)
         .insert_bundle(SpriteBundle {
@@ -384,27 +452,17 @@ fn handle_movement(
 }
 
 fn unit_tick(
-    mut units: Query<(&LuaState, Option<&mut Movement>, &mut UnitClock, &Transform), With<Unit>>,
+    mut units: Query<(&mut UnitProgram, Option<&mut Movement>, &mut UnitClock, &Transform), With<Unit>>,
     game_clock: Res<GameClock>) 
 {
-    for (lua, mut movement, clock, transform) in units.iter_mut() {
-        let lua_lock = lua.lua.lock().unwrap();
-        {
-            let globals = lua_lock.globals();
-            if let Some(on_tick) = globals.get::<_, Option<LuaFunction>>("on_tick").unwrap() {
-                lua_lock.scope(|s| {
-                    let handle = UnitHandle {
-                        movement: movement.as_deref_mut(),
-                        transform,
-                        clock: &clock,
-                        game_clock: &game_clock
-                    };
-                    let lua_handle = s.create_nonstatic_userdata(LuaUnitHandle{handle})?;
-                    on_tick.call(lua_handle)?;
-                    Ok(())
-                }).unwrap();
-            };
+    for (mut unit_program, mut movement, clock, transform) in units.iter_mut() {
+        let handle = UnitHandle {
+            movement: movement.as_deref_mut(),
+            transform,
+            clock: &clock,
+            game_clock: &game_clock
         };
+        unit_program.tick(handle)
     }
 }
 
