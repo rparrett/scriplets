@@ -1,5 +1,4 @@
-use std::{sync::Mutex, collections::HashMap, path::PathBuf, fs::File, f32::consts::PI};
-use mlua::prelude::*;
+use std::{collections::HashMap, path::PathBuf, fs::File, f32::consts::PI};
 use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, asset::AssetServerSettings};
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Deserializer};
