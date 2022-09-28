@@ -1,9 +1,10 @@
-use std::{collections::HashMap, path::PathBuf, fs::File, f32::consts::PI};
+use std::{collections::HashMap, path::PathBuf, fs::File, f32::consts::PI, io::Read};
 use bevy::{prelude::*, window::PresentMode, render::camera::ScalingMode, input::mouse::{MouseWheel, MouseScrollUnit, MouseMotion}, time::Stopwatch, asset::AssetServerSettings};
 use bevy_rapier2d::prelude::*;
 use serde::{Deserialize, Deserializer};
 use scriplets_derive::{ComponentPrototype, Prototype};
 use strum::AsRefStr;
+use blake3::Hash;
 
 mod program;
 
@@ -36,6 +37,8 @@ pub struct Unit;
 
 #[derive(Deserialize)]
 pub struct Prototypes {
+    #[serde(skip)]
+    hash: Option<Hash>,
     #[serde(deserialize_with = "hashmap_from_sequence")]
     movement: HashMap<String, Movement>
 }
@@ -333,8 +336,12 @@ fn load_assets(
     let wall_sprite = assets.load("wall.png");
     commands.insert_resource(WallSprite(wall_sprite));
     let prototypes_path = PathBuf::from(&asset_settings.asset_folder).join("prototypes.json");
-    let prototypes_file = File::open(prototypes_path).unwrap();
-    let prototypes: Prototypes = serde_json::from_reader(prototypes_file).unwrap();
+    let mut prototypes_file = File::open(prototypes_path).unwrap();
+    let mut prototypes_file_data = Vec::new();
+    prototypes_file.read_to_end(&mut prototypes_file_data).unwrap();
+    let hash = blake3::hash(&prototypes_file_data);
+    let mut prototypes: Prototypes = serde_json::from_slice(&prototypes_file_data).unwrap();
+    prototypes.hash = Some(hash);
     commands.insert_resource(prototypes)
 }
 
