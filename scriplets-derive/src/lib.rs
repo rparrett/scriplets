@@ -46,10 +46,6 @@ pub fn component_prototype_derive(input: TokenStream) -> TokenStream {
                 fn to_component(&self) -> Self {
                     self.clone()
                 }
-
-                fn component_from_pt(prototypes_table: &Prototypes, name: &str) -> Option<Self> {
-                    Self::from_pt(prototypes_table, name).map(Self::to_component)
-                }
             }
         }.into()
     } else {

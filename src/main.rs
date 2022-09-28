@@ -48,7 +48,9 @@ pub trait Prototype<'de>: Deserialize<'de> {
 
 pub trait ComponentPrototype<'de, T: Component = Self>: Prototype<'de> {
     fn to_component(&self) -> T;
-    fn component_from_pt(prototypes_table: &Prototypes, name: &str) -> Option<T>;
+    fn component_from_pt(prototypes_table: &Prototypes, name: &str) -> Option<T> {
+        Self::from_pt(prototypes_table, name).map(Self::to_component)
+    }
 }
 
 pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, P: Prototype<'de>>(deserializer: D) -> Result<HashMap<String, P>, D::Error> {
