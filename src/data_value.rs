@@ -1,3 +1,5 @@
+//! Enums for representing data stored in data storages. Takes inspiration from mlua's Value.
+
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use mlua::prelude::*;
