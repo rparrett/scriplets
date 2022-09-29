@@ -39,6 +39,21 @@ impl From<DataValueHashEq> for DataValue {
     }
 }
 
+impl<'lua> FromLua<'lua> for DataValue {
+    fn from_lua(lua_value: LuaValue<'lua>, _lua: &'lua Lua) -> LuaResult<Self> {
+        let type_name = lua_value.type_name();
+        match lua_value {
+            LuaValue::Nil => Ok(Self::Nil),
+            LuaValue::Boolean(b) => Ok(Self::Boolean(b)),
+            LuaValue::Integer(i) => Ok(Self::Integer(i)),
+            LuaValue::Number(n) => Ok(Self::Number(n)),
+            LuaValue::String(s) => Ok(Self::String(s.to_str()?.into())),
+            LuaValue::Table(t) => Ok(Self::Table(t.pairs().collect::<Result<HashMap<DataValueHashEq, DataValue>, LuaError>>()?)),
+            _ => Err(LuaError::FromLuaConversionError { from: type_name, to: "DataValue", message: Some("type not supported".into()) })
+        }
+    }
+}
+
 impl TryFrom<DataValue> for DataValueHashEq {
     type Error = DataValueConversionError;
 
@@ -52,6 +67,12 @@ impl TryFrom<DataValue> for DataValueHashEq {
             DataValue::Sequence(sq) => Ok(Self::Sequence(sq.into_iter().map(TryInto::try_into).collect::<Result<Vec<Self>, Self::Error>>()?)),
             DataValue::Table(t) => Err(Self::Error::Table(t))
         }
+    }
+}
+
+impl<'lua> FromLua<'lua> for DataValueHashEq {
+    fn from_lua(lua_value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
+        DataValue::from_lua(lua_value, lua)?.try_into().map_err(LuaError::external)
     }
 }
 
