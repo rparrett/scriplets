@@ -7,8 +7,10 @@ use strum::AsRefStr;
 use blake3::Hash;
 
 mod program;
+mod data_value;
 
 use program::{UnitProgram, UnitHandle};
+use data_value::{DataValue, DataValueHashEq};
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
 const RESOLUTION: f32 = 16.0 / 9.0;
