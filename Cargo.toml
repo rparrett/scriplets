@@ -22,3 +22,4 @@ scriplets-derive = {path = "./scriplets-derive"}
 strum = {version = "0.24", features = ["derive"]}
 strum_macros = "0.24"
 blake3 = "1.3"
+thiserror = "1.0"
