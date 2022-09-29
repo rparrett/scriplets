@@ -48,8 +48,28 @@ impl<'lua> FromLua<'lua> for DataValue {
             LuaValue::Integer(i) => Ok(Self::Integer(i)),
             LuaValue::Number(n) => Ok(Self::Number(n)),
             LuaValue::String(s) => Ok(Self::String(s.to_str()?.into())),
-            LuaValue::Table(t) => Ok(Self::Table(t.pairs().collect::<Result<HashMap<DataValueHashEq, DataValue>, LuaError>>()?)),
+            LuaValue::Table(t) => {
+                if let Ok(seq) = t.clone().sequence_values::<DataValue>().collect::<LuaResult<Vec<DataValue>>>() {
+                    Ok(Self::Sequence(seq))
+                } else {
+                    Ok(Self::Table(t.pairs().collect::<LuaResult<HashMap<DataValueHashEq, DataValue>>>()?))
+                }
+            },
             _ => Err(LuaError::FromLuaConversionError { from: type_name, to: "DataValue", message: Some("type not supported".into()) })
+        }
+    }
+}
+
+impl<'lua> ToLua<'lua> for DataValue {
+    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+        match self {
+            Self::Nil => Ok(LuaValue::Nil),
+            Self::Boolean(b) => Ok(LuaValue::Boolean(b)),
+            Self::Integer(i) => Ok(LuaValue::Integer(i)),
+            Self::Number(n) => Ok(LuaValue::Number(n)),
+            Self::String(s) => s.to_lua(lua),
+            Self::Sequence(seq) => seq.to_lua(lua),
+            Self::Table(t) => t.to_lua(lua)
         }
     }
 }
@@ -73,6 +93,12 @@ impl TryFrom<DataValue> for DataValueHashEq {
 impl<'lua> FromLua<'lua> for DataValueHashEq {
     fn from_lua(lua_value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
         DataValue::from_lua(lua_value, lua)?.try_into().map_err(LuaError::external)
+    }
+}
+
+impl<'lua> ToLua<'lua> for DataValueHashEq {
+    fn to_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+        DataValue::from(self).to_lua(lua)
     }
 }
 
