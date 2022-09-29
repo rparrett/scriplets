@@ -61,6 +61,4 @@ pub enum DataValueConversionError {
     Number(LuaNumber),
     #[error("DataValueHashEq can't contain HashMap")]
     Table(HashMap<DataValueHashEq, DataValue>),
-    #[error("DataValueHashEq can't contain LuaTable")]
-    LuaTable
 }
