@@ -25,3 +25,15 @@ pub enum DataValueHashEq {
     String(String),
     Sequence(Vec<DataValueHashEq>),
 }
+
+impl From<DataValueHashEq> for DataValue {
+    fn from(data: DataValueHashEq) -> Self {
+        match data {
+            DataValueHashEq::Nil => Self::Nil,
+            DataValueHashEq::Boolean(b) => Self::Boolean(b),
+            DataValueHashEq::Integer(i) => Self::Integer(i),
+            DataValueHashEq::String(s) => Self::String(s),
+            DataValueHashEq::Sequence(sq) => Self::Sequence(sq.into_iter().map(Into::into).collect())
+        }
+    }
+}
