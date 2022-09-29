@@ -57,8 +57,10 @@ impl TryFrom<DataValue> for DataValueHashEq {
 
 #[derive(Debug, Clone, Error)]
 pub enum DataValueConversionError {
-    #[error("DataValueHashEq can't be converted from DataValue::Number")]
+    #[error("DataValueHashEq can't contain f64")]
     Number(LuaNumber),
-    #[error("DataValueHashEq can't be converted from DataValue::Table")]
-    Table(HashMap<DataValueHashEq, DataValue>)
+    #[error("DataValueHashEq can't contain HashMap")]
+    Table(HashMap<DataValueHashEq, DataValue>),
+    #[error("DataValueHashEq can't contain LuaTable")]
+    LuaTable
 }
