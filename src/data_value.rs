@@ -3,6 +3,7 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use mlua::prelude::*;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
@@ -36,4 +37,28 @@ impl From<DataValueHashEq> for DataValue {
             DataValueHashEq::Sequence(sq) => Self::Sequence(sq.into_iter().map(Into::into).collect())
         }
     }
+}
+
+impl TryFrom<DataValue> for DataValueHashEq {
+    type Error = DataValueConversionError;
+
+    fn try_from(value: DataValue) -> Result<Self, Self::Error> {
+        match value {
+            DataValue::Nil => Ok(Self::Nil),
+            DataValue::Boolean(b) => Ok(Self::Boolean(b)),
+            DataValue::Integer(i) => Ok(Self::Integer(i)),
+            DataValue::Number(n) => Err(Self::Error::Number(n)),
+            DataValue::String(s) => Ok(Self::String(s)),
+            DataValue::Sequence(sq) => Ok(Self::Sequence(sq.into_iter().map(TryInto::try_into).collect::<Result<Vec<Self>, Self::Error>>()?)),
+            DataValue::Table(t) => Err(Self::Error::Table(t))
+        }
+    }
+}
+
+#[derive(Debug, Clone, Error)]
+pub enum DataValueConversionError {
+    #[error("DataValueHashEq can't be converted from DataValue::Number")]
+    Number(LuaNumber),
+    #[error("DataValueHashEq can't be converted from DataValue::Table")]
+    Table(HashMap<DataValueHashEq, DataValue>)
 }
