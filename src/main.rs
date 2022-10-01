@@ -96,6 +96,7 @@ pub struct Movement {
 
 #[derive(Deserialize, Clone, AsRefStr)]
 #[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum MovementType {
     Omnidirectional,
     AcceleratedSteering,
