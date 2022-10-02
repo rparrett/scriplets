@@ -7,16 +7,14 @@ use bevy::{
     window::PresentMode,
 };
 use bevy_rapier2d::prelude::*;
-use blake3::Hash;
-use scriplets_derive::{ComponentPrototype, Prototype};
-use serde::{Deserialize, Deserializer};
-use std::{collections::HashMap, f32::consts::PI, fs::File, io::Read, path::PathBuf};
-use strum::AsRefStr;
+use prototypes::{ComponentPrototype, Movement, MovementType, Prototypes, PrototypesLoader};
+
+use std::f32::consts::PI;
 
 mod data_value;
 mod program;
+mod prototypes;
 
-use data_value::{DataValue, DataValueHashEq};
 use program::{UnitHandle, UnitProgram};
 
 const CLEAR_COLOR: Color = Color::rgb(0.1, 0.1, 0.1);
@@ -43,77 +41,6 @@ const RESOLUTION: f32 = 16.0 / 9.0;
 #[derive(Component)]
 pub struct Unit;
 
-#[derive(Deserialize)]
-pub struct Prototypes {
-    #[serde(skip)]
-    hash: Option<Hash>,
-    #[serde(deserialize_with = "hashmap_from_sequence")]
-    movement: HashMap<String, Movement>,
-}
-
-pub trait Prototype<'de>: Deserialize<'de> {
-    fn name(&self) -> &str;
-    fn from_pt<'a, 'b>(prototypes_table: &'a Prototypes, name: &'b str) -> Option<&'a Self>;
-}
-
-pub trait ComponentPrototype<'de, T: Component = Self>: Prototype<'de> {
-    fn to_component(&self) -> T;
-    fn component_from_pt(prototypes_table: &Prototypes, name: &str) -> Option<T> {
-        Self::from_pt(prototypes_table, name).map(Self::to_component)
-    }
-}
-
-pub fn hashmap_from_sequence<'de, D: Deserializer<'de>, P: Prototype<'de>>(
-    deserializer: D,
-) -> Result<HashMap<String, P>, D::Error> {
-    Ok(Vec::<P>::deserialize(deserializer)?
-        .into_iter()
-        .map(|p| (p.name().to_string(), p))
-        .collect())
-}
-
-// TODO: reimplement acceleration movement type to support steering around a point
-//  Or make a new movement type which works as stated above
-#[derive(Component, Prototype, ComponentPrototype, Deserialize, Clone)]
-#[prot_category(movement)]
-pub struct Movement {
-    name: String,
-    movement_type: MovementType,
-    // movement characteristics
-    #[serde(default)]
-    speed: f32, // tiles / second
-    #[serde(default)]
-    max_speed: f32,
-    #[serde(default)]
-    max_speed_backwards: Option<f32>,
-    #[serde(default)]
-    acceleration: f32, // tiles / second^2
-    #[serde(default)]
-    braking_acceleration: Option<f32>,
-    #[serde(default)]
-    passive_deceleration: f32,
-    #[serde(default)]
-    rotation_speed: f32, // degrees / second
-    #[serde(default)]
-    rotation_offset: f32,
-    // input
-    #[serde(skip)]
-    input_move: Vec2,
-    #[serde(skip)]
-    input_rotation: f32,
-    #[serde(skip)]
-    hand_brake: bool,
-}
-
-#[derive(Deserialize, Clone, AsRefStr)]
-#[serde(rename_all = "kebab-case")]
-#[strum(serialize_all = "kebab-case")]
-pub enum MovementType {
-    Omnidirectional,
-    AcceleratedSteering,
-    Train,
-}
-
 #[derive(Component)]
 pub struct UnitClock(Stopwatch);
 
@@ -121,6 +48,7 @@ pub struct GameClock(Stopwatch);
 
 pub struct UnitSprite(Handle<Image>);
 pub struct WallSprite(Handle<Image>);
+pub struct PrototypesHandle(Handle<Prototypes>);
 
 fn spawn_camera(mut commands: Commands) {
     let mut camera = Camera2dBundle::default();
@@ -386,25 +314,13 @@ fn print_units_positions(units: Query<&Transform, With<Unit>>) {
     }
 }
 
-fn load_assets(
-    mut commands: Commands,
-    assets: Res<AssetServer>,
-    asset_settings: Res<AssetServerSettings>,
-) {
+fn load_assets(mut commands: Commands, assets: Res<AssetServer>) {
     let unit_sprite = assets.load("unit.png");
     commands.insert_resource(UnitSprite(unit_sprite));
     let wall_sprite = assets.load("wall.png");
     commands.insert_resource(WallSprite(wall_sprite));
-    let prototypes_path = PathBuf::from(&asset_settings.asset_folder).join("prototypes.json");
-    let mut prototypes_file = File::open(prototypes_path).unwrap();
-    let mut prototypes_file_data = Vec::new();
-    prototypes_file
-        .read_to_end(&mut prototypes_file_data)
-        .unwrap();
-    let hash = blake3::hash(&prototypes_file_data);
-    let mut prototypes: Prototypes = serde_json::from_slice(&prototypes_file_data).unwrap();
-    prototypes.hash = Some(hash);
-    commands.insert_resource(prototypes)
+    let prototypes = assets.load("prototypes.json");
+    commands.insert_resource(PrototypesHandle(prototypes))
 }
 
 fn main() {
@@ -421,6 +337,8 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(32.0))
+        .add_asset::<Prototypes>()
+        .init_asset_loader::<PrototypesLoader>()
         .insert_resource(GameClock(Stopwatch::default()))
         .add_startup_system_to_stage(StartupStage::PreStartup, load_assets)
         .add_startup_system(spawn_walls)
