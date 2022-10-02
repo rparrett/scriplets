@@ -1,5 +1,5 @@
 use bevy::{
-    asset::AssetServerSettings,
+    asset::LoadState,
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
     prelude::*,
     render::camera::ScalingMode,
@@ -37,6 +37,12 @@ const RESOLUTION: f32 = 16.0 / 9.0;
 //  will be done, just comparing the keys.
 //
 //  Possible new language: wasm
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum AppState {
+    Loading,
+    Playing,
+}
 
 #[derive(Component)]
 pub struct Unit;
@@ -92,8 +98,11 @@ fn move_and_zoom_camera(
 fn spawn_unit(
     mut commands: Commands,
     unit_sprite: Res<UnitSprite>,
-    component_prototypes: Res<Prototypes>,
+    prototypes_handle: Res<PrototypesHandle>,
+    prototypes_assets: Res<Assets<Prototypes>>,
 ) {
+    let component_prototypes = prototypes_assets.get(&prototypes_handle.0).unwrap();
+
     let unit_program = UnitProgram::new_lua_with_program(
         r#"
         function on_tick(handle)
@@ -323,6 +332,20 @@ fn load_assets(mut commands: Commands, assets: Res<AssetServer>) {
     commands.insert_resource(PrototypesHandle(prototypes))
 }
 
+fn check_load_assets(
+    mut state: ResMut<State<AppState>>,
+    unit: Res<UnitSprite>,
+    wall: Res<WallSprite>,
+    prototypes: Res<PrototypesHandle>,
+    asset_server: Res<AssetServer>,
+) {
+    if let LoadState::Loaded =
+        asset_server.get_group_load_state([unit.0.id, wall.0.id, prototypes.0.id])
+    {
+        state.set(AppState::Playing).unwrap();
+    }
+}
+
 fn main() {
     let height = 900.0;
     let mut app = App::new();
@@ -339,17 +362,26 @@ fn main() {
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(32.0))
         .add_asset::<Prototypes>()
         .init_asset_loader::<PrototypesLoader>()
+        .add_state(AppState::Loading)
         .insert_resource(GameClock(Stopwatch::default()))
-        .add_startup_system_to_stage(StartupStage::PreStartup, load_assets)
-        .add_startup_system(spawn_walls)
-        .add_startup_system(spawn_unit)
-        .add_startup_system(spawn_camera)
+        .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_assets))
+        .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_load_assets))
+        .add_system_set(
+            SystemSet::on_enter(AppState::Playing)
+                .with_system(spawn_walls)
+                .with_system(spawn_unit)
+                .with_system(spawn_camera),
+        )
+        .add_system_set(
+            SystemSet::on_update(AppState::Playing)
+                .with_system(print_units_positions)
+                .with_system(game_clock_tick)
+                .with_system(handle_movement)
+                .with_system(move_and_zoom_camera),
+        )
         .add_system_to_stage(CoreStage::First, tick_units_clocks)
-        .add_system_to_stage(CoreStage::PreUpdate, unit_tick)
-        .add_system(print_units_positions)
-        .add_system(game_clock_tick)
-        .add_system(handle_movement)
-        .add_system(move_and_zoom_camera);
+        .add_system_to_stage(CoreStage::PreUpdate, unit_tick);
+
     #[cfg(feature = "debug")]
     app.add_plugin(RapierDebugRenderPlugin::default());
     app.run()
