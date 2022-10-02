@@ -1,18 +1,18 @@
-use mlua::prelude::*;
+use super::{GameClock, Movement, UnitClock};
 use bevy::prelude::*;
-use super::{Movement, UnitClock, GameClock};
-use std::{sync::Mutex, f32::consts::PI};
+use mlua::prelude::*;
+use std::{f32::consts::PI, sync::Mutex};
 
 #[derive(Component)]
 pub struct UnitProgram {
     state: UnitProgramState,
-    pub program: Box<[u8]>
+    pub program: Box<[u8]>,
 }
 
 impl UnitProgram {
     pub fn tick(&mut self, handle: UnitHandle<'_>) {
         self.state.tick(handle)
-    } 
+    }
 
     pub fn reload(&mut self) {
         self.state.reload(self.program.as_ref())
@@ -21,14 +21,14 @@ impl UnitProgram {
     pub fn new_lua() -> Self {
         UnitProgram {
             state: UnitProgramState::new_lua(),
-            program: Box::new([])
+            program: Box::new([]),
         }
     }
 
     pub fn new_lua_with_program(program: &[u8]) -> Self {
         UnitProgram {
             state: UnitProgramState::new_lua_with_program(program),
-            program: program.into()
+            program: program.into(),
         }
     }
 }
@@ -39,16 +39,22 @@ pub enum UnitProgramState {
 }
 
 impl UnitProgramState {
-    pub fn tick(&mut self, handle: UnitHandle<'_>) { // TODO: error handling?
+    pub fn tick(&mut self, handle: UnitHandle<'_>) {
+        // TODO: error handling?
         match self {
             Self::Lua(lua) => {
                 let lua = lua.get_mut().unwrap();
-                if let Some(on_tick_fn) = lua.globals().get::<_, Option<LuaFunction>>("on_tick").unwrap() {
+                if let Some(on_tick_fn) = lua
+                    .globals()
+                    .get::<_, Option<LuaFunction>>("on_tick")
+                    .unwrap()
+                {
                     lua.scope(|s| {
-                        let lua_handle = s.create_nonstatic_userdata(LuaUnitHandle{handle})?;
+                        let lua_handle = s.create_nonstatic_userdata(LuaUnitHandle { handle })?;
                         on_tick_fn.call(lua_handle)?;
                         Ok(())
-                    }).unwrap();
+                    })
+                    .unwrap();
                 };
             }
         }
@@ -60,7 +66,7 @@ impl UnitProgramState {
 
     pub fn resetted(&mut self) -> Self {
         match self {
-            Self::Lua(_) => Self::new_lua()
+            Self::Lua(_) => Self::new_lua(),
         }
     }
 
@@ -70,7 +76,7 @@ impl UnitProgramState {
 
     pub fn new_with_program(&self, program: &[u8]) -> Self {
         match self {
-            Self::Lua(_) => Self::new_lua_with_program(program)
+            Self::Lua(_) => Self::new_lua_with_program(program),
         }
     }
 
@@ -90,11 +96,11 @@ pub struct UnitHandle<'a> {
     pub movement: Option<&'a mut Movement>,
     pub transform: &'a Transform,
     pub clock: &'a UnitClock,
-    pub game_clock: &'a GameClock
+    pub game_clock: &'a GameClock,
 }
 
 pub struct LuaUnitHandle<'a> {
-    handle: UnitHandle<'a>
+    handle: UnitHandle<'a>,
 }
 
 // TODO: after making a planet map, methods for getting nearest transition tile or a tile adjacent
@@ -130,7 +136,12 @@ impl LuaUserData for LuaUnitHandle<'_> {
         });
         fields.add_field_method_get("gps", |lua, lua_handle| {
             let position: [f32; 2] = lua_handle.handle.transform.translation.truncate().into();
-            let rotation_radians = lua_handle.handle.transform.rotation.to_euler(EulerRot::XYZ).2;
+            let rotation_radians = lua_handle
+                .handle
+                .transform
+                .rotation
+                .to_euler(EulerRot::XYZ)
+                .2;
             let rotation_degrees = -(rotation_radians * 180.0) / PI;
             let table = lua.create_table()?;
             table.set("position", position)?;

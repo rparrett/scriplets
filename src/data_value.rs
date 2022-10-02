@@ -1,8 +1,8 @@
 //! Enums for representing data stored in data storages. Takes inspiration from mlua's Value.
 
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 use mlua::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -14,7 +14,7 @@ pub enum DataValue {
     Number(LuaNumber),
     String(String),
     Sequence(Vec<DataValue>),
-    Table(HashMap<DataValueHashEq, DataValue>)
+    Table(HashMap<DataValueHashEq, DataValue>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
@@ -34,7 +34,9 @@ impl From<DataValueHashEq> for DataValue {
             DataValueHashEq::Boolean(b) => Self::Boolean(b),
             DataValueHashEq::Integer(i) => Self::Integer(i),
             DataValueHashEq::String(s) => Self::String(s),
-            DataValueHashEq::Sequence(sq) => Self::Sequence(sq.into_iter().map(Into::into).collect())
+            DataValueHashEq::Sequence(sq) => {
+                Self::Sequence(sq.into_iter().map(Into::into).collect())
+            }
         }
     }
 }
@@ -49,13 +51,24 @@ impl<'lua> FromLua<'lua> for DataValue {
             LuaValue::Number(n) => Ok(Self::Number(n)),
             LuaValue::String(s) => Ok(Self::String(s.to_str()?.into())),
             LuaValue::Table(t) => {
-                if let Ok(seq) = t.clone().sequence_values::<DataValue>().collect::<LuaResult<Vec<DataValue>>>() {
+                if let Ok(seq) = t
+                    .clone()
+                    .sequence_values::<DataValue>()
+                    .collect::<LuaResult<Vec<DataValue>>>()
+                {
                     Ok(Self::Sequence(seq))
                 } else {
-                    Ok(Self::Table(t.pairs().collect::<LuaResult<HashMap<DataValueHashEq, DataValue>>>()?))
+                    Ok(Self::Table(
+                        t.pairs()
+                            .collect::<LuaResult<HashMap<DataValueHashEq, DataValue>>>()?,
+                    ))
                 }
-            },
-            _ => Err(LuaError::FromLuaConversionError { from: type_name, to: "DataValue", message: Some("type not supported".into()) })
+            }
+            _ => Err(LuaError::FromLuaConversionError {
+                from: type_name,
+                to: "DataValue",
+                message: Some("type not supported".into()),
+            }),
         }
     }
 }
@@ -69,7 +82,7 @@ impl<'lua> ToLua<'lua> for DataValue {
             Self::Number(n) => Ok(LuaValue::Number(n)),
             Self::String(s) => s.to_lua(lua),
             Self::Sequence(seq) => seq.to_lua(lua),
-            Self::Table(t) => t.to_lua(lua)
+            Self::Table(t) => t.to_lua(lua),
         }
     }
 }
@@ -84,15 +97,21 @@ impl TryFrom<DataValue> for DataValueHashEq {
             DataValue::Integer(i) => Ok(Self::Integer(i)),
             DataValue::Number(n) => Err(Self::Error::Number(n)),
             DataValue::String(s) => Ok(Self::String(s)),
-            DataValue::Sequence(sq) => Ok(Self::Sequence(sq.into_iter().map(TryInto::try_into).collect::<Result<Vec<Self>, Self::Error>>()?)),
-            DataValue::Table(t) => Err(Self::Error::Table(t))
+            DataValue::Sequence(sq) => Ok(Self::Sequence(
+                sq.into_iter()
+                    .map(TryInto::try_into)
+                    .collect::<Result<Vec<Self>, Self::Error>>()?,
+            )),
+            DataValue::Table(t) => Err(Self::Error::Table(t)),
         }
     }
 }
 
 impl<'lua> FromLua<'lua> for DataValueHashEq {
     fn from_lua(lua_value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
-        DataValue::from_lua(lua_value, lua)?.try_into().map_err(LuaError::external)
+        DataValue::from_lua(lua_value, lua)?
+            .try_into()
+            .map_err(LuaError::external)
     }
 }
 
